@@ -1,2 +1,1 @@
-# Sismobi-paralelo
-Versão paralela do sistema sismobi-v3.2.0.0
+# Sismobi-paralelo\n\nVersão paralela do sistema sismobi-v3.2.0.0, voltado para testes e uso pessoal.\n\n## Estrutura do Projeto\n\n- frontend/ — Interface do usuário (HTML, CSS, TypeScript)\n- backend/ — Lógica de servidor e APIs\n- src/ — Código-fonte principal\n\n## Objetivo\n\nExplorar melhorias e validações sobre o sistema original sismobi-v3.2.0.0, com foco em desempenho, modularidade e paralelismo.\n\n## Status\n\n🚧 Em desenvolvimento — uso pessoal\n\n## Autor\n\nClevis74
