@@ -362,14 +362,18 @@ export function useHybridData<T>(
   // Cleanup
   useEffect(() => {
     return (): void => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
+      // Capture refs values at cleanup time to avoid ref mutation warnings
+      const retryTimeout = retryTimeoutRef.current;
+      const syncTimeout = syncTimeoutRef.current;
+      
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
       }
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
+      if (syncTimeout) {
+        clearTimeout(syncTimeout);
       }
     };
-  }, []); // Correto: não precisa de dependências pois estamos usando refs
+  }, []); // Empty dependency array is correct for cleanup-only effect
 
   return [
     state,
