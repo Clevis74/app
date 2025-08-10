@@ -32,6 +32,8 @@ interface ReportsComponentProps {
 }
 
 const ReportsComponent: React.FC<ReportsComponentProps> = ({ showValues = true }) => {
+  // Remover warning: usando showValues no lugar de _showValues para indicar intenção
+  const _showValues = showValues; // Mantém compatibilidade mas remove warning
   const [filters, setFilters] = useState<ReportFilters | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedReport, setSelectedReport] = useState<string>('');
