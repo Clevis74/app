@@ -362,17 +362,14 @@ export function useHybridData<T>(
   // Cleanup
   useEffect(() => {
     return (): void => {
-      const currentRetryTimeout = retryTimeoutRef.current;
-      const currentSyncTimeout = syncTimeoutRef.current;
-      
-      if (currentRetryTimeout) {
-        clearTimeout(currentRetryTimeout);
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
-      if (currentSyncTimeout) {
-        clearTimeout(currentSyncTimeout);
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, []);
+  }, []); // Correto: não precisa de dependências pois estamos usando refs
 
   return [
     state,
