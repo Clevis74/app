@@ -1,4 +1,4 @@
-# Lighthouse CI Workflow - SISMOBI v3.2.0
+# .github/workflows/lighthouse.yml
 name: Lighthouse CI
 
 on:
@@ -10,44 +10,53 @@ on:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    
+
     services:
       mongodb:
         image: mongo:latest
         ports:
           - 27017:27017
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
+      # 1) Configurar Node.js e Python
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'frontend/yarn.lock'
-          
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          
-      - name: Install Python dependencies
+
+      # 2) Instalar dependências
+      - name: Install backend dependencies
         run: |
           cd backend
           pip install -r requirements.txt
-          
+
       - name: Install frontend dependencies
         run: |
           cd frontend
           yarn install --frozen-lockfile
-          
+
+      # 3) Build do projeto
+      - name: Build backend
+        run: |
+          cd backend
+          # (adicione aqui seu comando de build backend, se houver)
+
       - name: Build frontend
         run: |
           cd frontend
           yarn build
-          
+
+      # 4) Start do servidor para coleta estática
       - name: Start backend server
         run: |
           cd backend
@@ -55,15 +64,17 @@ jobs:
           sleep 10
         env:
           MONGO_URL: mongodb://localhost:27017
-          
-      - name: Install Lighthouse CI
+
+      # 5) Instalar e rodar Lighthouse CI
+      - name: Install Lighthouse CI CLI
         run: npm install -g @lhci/cli@0.12.x
-        
+
       - name: Run Lighthouse CI
-        run: lhci autorun
+        run: lhci autorun --collect.staticDistDir=frontend/dist
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
-          
+
+      # 6) Armazenar artefatos para debug
       - name: Upload Lighthouse results
         uses: actions/upload-artifact@v4
         if: always()
