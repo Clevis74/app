@@ -3,7 +3,7 @@
  * Component para visualizar métricas de performance do Lighthouse CI
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Activity, 
   Zap, 
