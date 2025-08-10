@@ -52,7 +52,7 @@ export const LighthouseDashboard: React.FC<LighthouseDashboardProps> = ({
   const [selectedDevice, setSelectedDevice] = useState<'mobile' | 'desktop' | 'all'>('all');
 
   // Simulação de dados do Lighthouse (em produção viria da API)
-  const mockResults: LighthouseResult[] = [
+  const mockResults: LighthouseResult[] = useMemo(() => [
     {
       url: 'http://localhost:3000',
       timestamp: new Date().toISOString(),
@@ -101,7 +101,7 @@ export const LighthouseDashboard: React.FC<LighthouseDashboardProps> = ({
       },
       passed: false
     }
-  ];
+  ], []); // Empty dependency array since this is static mock data
 
   useEffect(() => {
     if (isVisible) {
