@@ -8,7 +8,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   FileBarChart, 
   Download, 
-  Calendar,
   Filter,
   FileText,
   Building,
@@ -16,8 +15,7 @@ import {
   DollarSign,
   BarChart3,
   Clock,
-  CheckCircle,
-  AlertCircle
+  CheckCircle
 } from 'lucide-react';
 
 interface ReportFilters {
