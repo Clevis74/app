@@ -87,7 +87,7 @@ const ReportsComponent: React.FC<ReportsComponentProps> = ({ showValues = true }
       const token = localStorage.getItem('token');
       
       if (!token) {
-        alert('Token de autenticação não encontrado. Faça login novamente.');
+        console.warn('Token de autenticação não encontrado. Faça login novamente.');
         setLoading(false);
         return;
       }
