@@ -112,7 +112,7 @@ export const LighthouseDashboard: React.FC<LighthouseDashboardProps> = ({
         setIsLoading(false);
       }, 1000);
     }
-  }, [isVisible]);
+  }, [isVisible, mockResults]); // Add mockResults dependency
 
   const getScoreColor = (score: number): string => {
     if (score >= 0.9) return 'text-green-600';
