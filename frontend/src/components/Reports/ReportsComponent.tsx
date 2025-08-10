@@ -155,7 +155,7 @@ const ReportsComponent: React.FC<ReportsComponentProps> = ({ showValues = true }
 
         // Feedback visual
         setSelectedReport('');
-        alert(`Relatório "${getReportTitle(reportType)}" gerado com sucesso!`);
+        console.log(`Relatório "${getReportTitle(reportType)}" gerado com sucesso!`);
         
       } else {
         const errorText = await response.text();
