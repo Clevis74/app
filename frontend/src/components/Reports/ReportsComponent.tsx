@@ -160,11 +160,11 @@ const ReportsComponent: React.FC<ReportsComponentProps> = ({ showValues = true }
       } else {
         const errorText = await response.text();
         console.error('Error generating report:', response.status, errorText);
-        alert(`Erro ao gerar relatório: ${response.status}`);
+        console.warn(`Erro ao gerar relatório: ${response.status}`);
       }
     } catch (error) {
       console.error('Error generating report:', error);
-      alert('Erro ao gerar relatório. Verifique sua conexão.');
+      console.warn('Erro ao gerar relatório. Verifique sua conexão.');
     } finally {
       setLoading(false);
     }
