@@ -1,9 +1,7 @@
 """
 SISMOBI Backend 3.2.0 - Simple Test Server for Consumption Testing
 """
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, HTTPException, Depends, Form
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
@@ -12,24 +10,7 @@ import json
 # Create FastAPI application
 app = FastAPI(title="SISMOBI Test API", version="3.2.0")
 
-# Add CORS middleware
-from fastapi.middleware.cors import CORSMiddleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Security
-security = HTTPBearer()
-
 # Models
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str
@@ -144,12 +125,6 @@ MOCK_PROPERTIES = [
     }
 ]
 
-# Auth dependency
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials == "test-token":
-        return MOCK_USER
-    raise HTTPException(status_code=401, detail="Invalid token")
-
 # Routes
 @app.get("/")
 async def root():
@@ -166,37 +141,37 @@ async def health_check():
     }
 
 @app.post("/api/v1/auth/login", response_model=LoginResponse)
-async def login(request: LoginRequest):
-    if request.username == "admin@sismobi.com" and request.password == "admin123456":
+async def login(username: str = Form(), password: str = Form()):
+    if username == "admin@sismobi.com" and password == "admin123456":
         return LoginResponse(access_token="test-token", token_type="bearer")
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.get("/api/v1/auth/me", response_model=User)
-async def get_current_user_info(current_user: dict = Depends(get_current_user)):
-    return User(**current_user)
+async def get_current_user_info():
+    return User(**MOCK_USER)
 
 @app.get("/api/v1/auth/verify")
-async def verify_token(current_user: dict = Depends(get_current_user)):
-    return {"valid": True, "user": current_user}
+async def verify_token():
+    return {"valid": True, "user": MOCK_USER}
 
 @app.get("/api/v1/tenants/", response_model=List[Tenant])
-async def get_tenants(current_user: dict = Depends(get_current_user)):
+async def get_tenants():
     return [Tenant(**tenant) for tenant in MOCK_TENANTS]
 
 @app.get("/api/v1/properties/", response_model=List[Property])
-async def get_properties(current_user: dict = Depends(get_current_user)):
+async def get_properties():
     return [Property(**prop) for prop in MOCK_PROPERTIES]
 
 @app.get("/api/v1/transactions/")
-async def get_transactions(current_user: dict = Depends(get_current_user)):
+async def get_transactions():
     return []
 
 @app.get("/api/v1/alerts/")
-async def get_alerts(current_user: dict = Depends(get_current_user)):
+async def get_alerts():
     return []
 
 @app.get("/api/v1/dashboard/summary")
-async def get_dashboard_summary(current_user: dict = Depends(get_current_user)):
+async def get_dashboard_summary():
     return {
         "totalProperties": len(MOCK_PROPERTIES),
         "totalTenants": len(MOCK_TENANTS),
