@@ -180,6 +180,33 @@ export const OptimizedTenantManager: React.FC<{
     return propertyMap;
   }, [properties]);
 
+  // Função para validar se o botão de consumo deve aparecer
+  const shouldShowConsumptionButton = useCallback((tenant: Tenant): boolean => {
+    // Validar status ativo
+    if (tenant.status !== 'active') return false;
+    
+    // Validar propriedade vinculada
+    if (!tenant.propertyId) return false;
+    
+    // Validar CPF válido (não fictício)
+    if (!tenant.cpf || tenant.cpf === '000.000.000-00' || tenant.cpf.replace(/\D/g, '').length !== 11) {
+      return false;
+    }
+    
+    return true;
+  }, []);
+
+  // Callbacks memoizados
+  const handleViewConsumption = useCallback((tenant: Tenant) => {
+    setSelectedTenantForConsumption(tenant);
+    setShowConsumptionModal(true);
+  }, []);
+
+  const handleCloseConsumptionModal = useCallback(() => {
+    setShowConsumptionModal(false);
+    setSelectedTenantForConsumption(null);
+  }, []);
+
   // Callbacks memoizados
   const handleAddTenant = useCallback((tenantData: Omit<Tenant, 'id'>) => {
     onAddTenant(tenantData);
