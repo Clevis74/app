@@ -1324,6 +1324,165 @@ The SISMOBI FastAPI backend 3.2.0 remains fully operational after Phase 3 Access
 
 ---
 
+## LATEST TEST SESSION: SISMOBI 3.2.0 - CONSUMPTION BUTTON FUNCTIONALITY TESTING
+
+### Test Overview
+**Date**: August 15, 2025  
+**Agent**: Testing Sub-Agent (Frontend Specialist)  
+**Focus**: Testing "📋 Consumo" button functionality for tenant consumption data  
+**Frontend URL**: http://localhost:3000  
+**Test Scope**: Consumption button visibility, modal functionality, and data display  
+
+### TEST RESULTS: ⚠️ **PARTIALLY TESTED - BACKEND AUTHENTICATION ISSUES**
+
+#### 🔍 CODE ANALYSIS: ✅ **IMPLEMENTATION VERIFIED**
+
+**Consumption Button Logic** (`/app/frontend/src/components/Tenants/OptimizedTenantManager.tsx`):
+- ✅ **shouldShowConsumptionButton() Function**: Correctly implemented with proper validation
+- ✅ **Criteria Validation**: 
+  - Status must be 'active' ✅
+  - PropertyId must exist (property linked) ✅  
+  - CPF must be valid (not "000.000.000-00") ✅
+- ✅ **Button Rendering**: Calculator icon in purple color with proper accessibility
+- ✅ **Modal Integration**: ConsumptionModal component properly integrated
+
+**Consumption Modal** (`/app/frontend/src/components/Tenants/ConsumptionModal.tsx`):
+- ✅ **Complete Implementation**: Full modal with tenant data, energy/water consumption
+- ✅ **Mock Data Support**: Includes demonstration data for João Silva
+- ✅ **Payment Status**: Visual indicators for paid/pending/overdue status
+- ✅ **Accessibility**: Proper ARIA labels, keyboard navigation, ESC key support
+- ✅ **Action Buttons**: Email, PDF, and data update functionality (with availability checks)
+
+#### 🚫 TESTING LIMITATIONS: **BACKEND AUTHENTICATION FAILURE**
+
+**Critical Issue Found**:
+- ❌ **Backend Server Error**: FastAPI middleware configuration issue
+- ❌ **Authentication Blocked**: Cannot login with admin@sismobi.com/admin123456
+- ❌ **Error Details**: "ValueError: too many values to unpack (expected 2)" in middleware stack
+- ❌ **Impact**: Unable to access authenticated frontend sections
+
+**Attempted Solutions**:
+1. ✅ **Backend Restart**: Multiple supervisor restarts attempted
+2. ✅ **Server Replacement**: Tried simple test server with mock data
+3. ✅ **Middleware Fixes**: Attempted CORS and middleware configuration fixes
+4. ❌ **All Failed**: Persistent FastAPI middleware configuration error
+
+#### 📋 EXPECTED BEHAVIOR ANALYSIS: ✅ **LOGIC VERIFIED**
+
+Based on code analysis, the expected behavior should be:
+
+**Test Data Scenarios**:
+1. **João Silva (Demo)**: 
+   - CPF: "123.456.789-01" (valid) ✅
+   - Status: "active" ✅
+   - PropertyId: "property-1" (linked) ✅
+   - **Expected**: Consumption button SHOULD appear ✅
+
+2. **Maria Ficticia (Demo)**:
+   - CPF: "000.000.000-00" (invalid) ❌
+   - Status: "active" ✅
+   - PropertyId: "property-2" (linked) ✅
+   - **Expected**: Consumption button should NOT appear ✅
+
+3. **Carlos Santos (Demo)**:
+   - CPF: "987.654.321-09" (valid) ✅
+   - Status: "active" ✅
+   - PropertyId: "property-3" (linked) ✅
+   - **Expected**: Consumption button SHOULD appear ✅
+
+**Modal Functionality**:
+- ✅ **Opens on button click**: Modal should display consumption data
+- ✅ **Displays tenant info**: Name, CPF (if valid), linked property
+- ✅ **Shows consumption data**: Energy and water values (total and proportional)
+- ✅ **Payment status**: Visual indicators with colored icons
+- ✅ **Action buttons**: Email, PDF, update data (with availability status)
+- ✅ **Closes properly**: X button and ESC key support
+
+#### 🛠️ TECHNICAL IMPLEMENTATION STATUS
+
+**Frontend Code Quality**: ✅ **EXCELLENT**
+- **Component Architecture**: Well-structured with proper separation of concerns
+- **State Management**: Proper React hooks and state handling
+- **Performance**: Memoized components and optimized rendering
+- **Accessibility**: Full ARIA support and keyboard navigation
+- **Error Handling**: Graceful fallbacks and user feedback
+- **Responsive Design**: Mobile-friendly implementation
+
+**Backend Integration**: ❌ **BLOCKED**
+- **API Endpoints**: Properly configured for hybrid system
+- **Authentication**: JWT token system implemented
+- **Mock Data**: Test data available for demonstration
+- **CORS Configuration**: Attempted but middleware issues persist
+
+### CRITICAL FINDINGS
+
+#### ✅ **IMPLEMENTATION IS CORRECT**
+The consumption button functionality is properly implemented according to specifications:
+1. **Button Visibility Logic**: Correctly validates active status, property link, and valid CPF
+2. **Modal Functionality**: Complete implementation with all required features
+3. **User Experience**: Professional design with proper accessibility
+4. **Data Integration**: Supports both API and localStorage fallback modes
+
+#### ❌ **TESTING BLOCKED BY BACKEND ISSUES**
+Cannot perform full end-to-end testing due to:
+1. **FastAPI Middleware Error**: Persistent configuration issue preventing server startup
+2. **Authentication Failure**: Unable to login and access tenant management section
+3. **Environment Issues**: Backend server configuration conflicts
+
+### RECOMMENDATIONS FOR MAIN AGENT
+
+#### 🔧 **IMMEDIATE ACTIONS REQUIRED**
+
+1. **🚨 HIGH PRIORITY - Fix Backend Authentication**:
+   - Investigate FastAPI middleware configuration error
+   - Check FastAPI version compatibility
+   - Verify CORS middleware setup
+   - Consider using web search tool for FastAPI middleware troubleshooting
+
+2. **🧪 ALTERNATIVE TESTING APPROACH**:
+   - Implement temporary authentication bypass for testing
+   - Create standalone test environment with mock authentication
+   - Use localStorage-only mode for consumption button testing
+
+3. **📋 VERIFICATION CHECKLIST**:
+   - Test consumption button appears for João Silva and Carlos Santos
+   - Verify button does NOT appear for Maria Ficticia (invalid CPF)
+   - Test modal opens and displays correct consumption data
+   - Verify modal closes properly with X button and ESC key
+   - Test responsive design on mobile devices
+
+#### 💡 **TECHNICAL SOLUTIONS**
+
+1. **Backend Fix Options**:
+   ```bash
+   # Try downgrading FastAPI if version conflict
+   pip install fastapi==0.68.0
+   
+   # Or check middleware configuration
+   # Remove problematic middleware temporarily
+   ```
+
+2. **Testing Workaround**:
+   - Modify AuthContext to bypass authentication in development
+   - Add test mode flag to skip backend authentication
+   - Use browser developer tools to manually set authentication state
+
+### CONCLUSION
+
+**Status**: ⚠️ **IMPLEMENTATION VERIFIED BUT TESTING INCOMPLETE**
+
+The consumption button functionality is **correctly implemented** and should work as specified. The code analysis confirms:
+- ✅ Proper validation logic for button visibility
+- ✅ Complete modal implementation with all required features  
+- ✅ Professional UI/UX design with accessibility support
+- ✅ Integration with hybrid data system
+
+However, **full testing is blocked** by backend authentication issues that require immediate attention from the main agent.
+
+**RECOMMENDATION**: Fix backend authentication first, then re-run consumption button tests to verify end-to-end functionality.
+
+---
+
 ## 🎉 **SISMOBI v3.2.0 - PROJETO COMPLETADO COM SUCESSO!**
 
 ### ✅ **TODAS AS FASES IMPLEMENTADAS E TESTADAS**
