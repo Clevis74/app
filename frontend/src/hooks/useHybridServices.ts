@@ -24,9 +24,55 @@ export function useProperties(): any {
 
 // Hook para inquilinos
 export function useTenants(): any {
+  // Dados de demonstração para testar a funcionalidade de consumo
+  const mockTenants = [
+    {
+      id: 'tenant-demo-1',
+      propertyId: 'prop-demo-1',
+      name: 'João Silva (Demo)',
+      email: 'joao.demo@example.com',
+      cpf: '123.456.789-01',
+      phone: '(11) 99999-1234',
+      startDate: new Date().toISOString(),
+      monthlyRent: 1200.0,
+      deposit: 1200.0,
+      status: 'active'
+    },
+    {
+      id: 'tenant-demo-2',
+      propertyId: 'prop-demo-2',
+      name: 'Maria Ficticia (Demo)',
+      email: 'maria.demo@example.com',
+      cpf: '000.000.000-00', // CPF fictício - botão não deve aparecer
+      phone: '(11) 99999-5678',
+      startDate: new Date().toISOString(),
+      monthlyRent: 1200.0,
+      deposit: 1200.0,
+      status: 'active'
+    },
+    {
+      id: 'tenant-demo-3',
+      propertyId: 'prop-demo-3',
+      name: 'Carlos Santos (Demo)',
+      email: 'carlos.demo@example.com',
+      cpf: '987.654.321-00',
+      phone: '(11) 99999-9999',
+      startDate: new Date().toISOString(),
+      monthlyRent: 1500.0,
+      deposit: 1500.0,
+      status: 'active'
+    }
+  ];
+
+  // Verificar se já existem dados no localStorage, senão adicionar os de demo
+  const existingData = localStorage.getItem('tenants');
+  if (!existingData || JSON.parse(existingData).length === 0) {
+    localStorage.setItem('tenants', JSON.stringify(mockTenants));
+  }
+
   return useHybridData<Tenant[]>(
     'tenants',
-    [],
+    mockTenants, // Default para os dados de demonstração
     {
       getAll: () => tenantService.getAll(),
       create: (item) => tenantService.create(item),
