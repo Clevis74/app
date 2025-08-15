@@ -2,21 +2,11 @@
 SISMOBI Backend 3.2.0 - Minimal FastAPI server for testing consumption functionality
 """
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import uuid
 from datetime import datetime
 
 # Create FastAPI application
 app = FastAPI(title="SISMOBI API", version="3.2.0")
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://tenant-utilities.preview.emergentagent.com"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Sample data for testing
 sample_properties = [
