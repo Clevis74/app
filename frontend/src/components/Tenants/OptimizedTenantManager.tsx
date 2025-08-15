@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, User, Phone, Mail, Calendar } from 'lucide-react';
-import { Tenant } from '../../types';
+import { Plus, Edit, Trash2, User, Phone, Mail, Calendar, Calculator } from 'lucide-react';
+import { Tenant, Property, EnergyBill, WaterBill } from '../../types';
 import { TenantForm } from './TenantForm';
+import { ConsumptionModal } from './ConsumptionModal';
 import { formatDate, formatCurrency } from '../../utils/optimizedCalculations';
 import { useRenderMonitor } from '../../utils/performanceMonitor';
 import { useDebouncedCallback } from '../../utils/debounceUtils';
