@@ -5,9 +5,52 @@ import { Property, Tenant, Transaction, Alert, Document, EnergyBill, WaterBill }
 
 // Hook para propriedades
 export function useProperties(): any {
+  // Dados de demonstração para testar a funcionalidade de consumo
+  const mockProperties = [
+    {
+      id: 'prop-demo-1',
+      name: 'Apartamento 802-Ca 01 (Demo)',
+      address: 'Rua das Flores, 802',
+      energyUnitName: '802-Ca 01',
+      type: 'apartment',
+      purchasePrice: 150000.0,
+      rentValue: 1200.0,
+      status: 'rented',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'prop-demo-2',
+      name: 'Apartamento 802-Ca 02 (Demo)',
+      address: 'Rua das Flores, 802',
+      energyUnitName: '802-Ca 02',
+      type: 'apartment',
+      purchasePrice: 150000.0,
+      rentValue: 1200.0,
+      status: 'rented',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'prop-demo-3',
+      name: 'Apartamento 802-Ca 03 (Demo)',
+      address: 'Rua das Flores, 802',
+      energyUnitName: '802-Ca 03',
+      type: 'apartment',
+      purchasePrice: 160000.0,
+      rentValue: 1500.0,
+      status: 'rented',
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  // Verificar se já existem dados no localStorage, senão adicionar os de demo
+  const existingData = localStorage.getItem('properties');
+  if (!existingData || JSON.parse(existingData).length === 0) {
+    localStorage.setItem('properties', JSON.stringify(mockProperties));
+  }
+
   return useHybridData<Property[]>(
     'properties',
-    [],
+    mockProperties, // Default para os dados de demonstração
     {
       getAll: () => propertyService.getAll(),
       create: (item) => propertyService.create(item),
