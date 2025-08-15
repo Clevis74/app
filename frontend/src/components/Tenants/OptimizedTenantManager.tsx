@@ -160,6 +160,8 @@ export const OptimizedTenantManager: React.FC<{
   const [showForm, setShowForm] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showConsumptionModal, setShowConsumptionModal] = useState(false);
+  const [selectedTenantForConsumption, setSelectedTenantForConsumption] = useState<Tenant | null>(null);
 
   // Memoizar inquilinos filtrados
   const filteredTenants = useMemo(() => {
