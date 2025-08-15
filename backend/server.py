@@ -13,6 +13,7 @@ import json
 app = FastAPI(title="SISMOBI Test API", version="3.2.0")
 
 # Add CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
