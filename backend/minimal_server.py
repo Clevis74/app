@@ -160,7 +160,7 @@ class APIHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response).encode())
 
 if __name__ == "__main__":
-    PORT = 8001
+    PORT = 8002  # Usando porta diferente
     with socketserver.TCPServer(("", PORT), APIHandler) as httpd:
         print(f"SISMOBI Minimal Backend running on port {PORT}")
         httpd.serve_forever()
