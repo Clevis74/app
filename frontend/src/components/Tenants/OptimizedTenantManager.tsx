@@ -52,6 +52,28 @@ const TenantCard = React.memo(({
     }
   };
 
+  // Função para obter o motivo da ocultação do botão de consumo
+  const getConsumptionButtonBlockReason = (tenant: Tenant): string | null => {
+    if (tenant.status !== 'active') {
+      return 'Status inativo';
+    }
+    if (!tenant.propertyId) {
+      return 'Sem propriedade vinculada';
+    }
+    if (!tenant.cpf) {
+      return 'CPF não informado';
+    }
+    if (tenant.cpf === '000.000.000-00') {
+      return 'CPF fictício';
+    }
+    if (tenant.cpf.replace(/\D/g, '').length !== 11) {
+      return 'CPF inválido (deve ter 11 dígitos)';
+    }
+    return null; // Não há bloqueio
+  };
+
+  const blockReason = getConsumptionButtonBlockReason(tenant);
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
       <div className="p-6">
@@ -68,6 +90,19 @@ const TenantCard = React.memo(({
             </div>
           </div>
         </div>
+
+        {/* AVISO VISUAL TEMPORÁRIO - Motivo da ocultação do botão de consumo */}
+        {!showConsumptionButton && blockReason && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center">
+              <Calculator className="w-4 h-4 text-yellow-600 mr-2" />
+              <div className="text-sm">
+                <p className="text-yellow-800 font-medium">Botão de consumo oculto</p>
+                <p className="text-yellow-700">Motivo: {blockReason}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-gray-600">
