@@ -4,11 +4,15 @@ SISMOBI Backend 3.2.0 - Simple Test Server for Consumption Testing
 from fastapi import FastAPI, HTTPException, Form
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 import json
 
-# Create FastAPI application
-app = FastAPI(title="SISMOBI Test API", version="3.2.0")
+# Create FastAPI application with basic config
+app = FastAPI(
+    title="SISMOBI Test API", 
+    version="3.2.0",
+    openapi_url="/api/v1/openapi.json"
+)
 
 # Models
 class LoginResponse(BaseModel):
@@ -184,20 +188,6 @@ MOCK_PROPERTIES = [
         "energyUnitName": "Solar 201"
     }
 ]
-
-# Add CORS headers to all responses
-@app.middleware("http")
-async def add_cors_header(request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
-# Handle preflight OPTIONS requests
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    return {"message": "OK"}
 
 # Routes
 @app.get("/")
