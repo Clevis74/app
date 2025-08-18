@@ -10,15 +10,6 @@ import json
 # Create FastAPI application
 app = FastAPI(title="SISMOBI Test API", version="3.2.0")
 
-# Simple CORS headers for middleware alternative
-@app.middleware("http")
-async def add_cors_header(request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
 # Models
 class LoginResponse(BaseModel):
     access_token: str
@@ -194,6 +185,20 @@ MOCK_PROPERTIES = [
     }
 ]
 
+# Add CORS headers to all responses
+@app.middleware("http")
+async def add_cors_header(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# Handle preflight OPTIONS requests
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    return {"message": "OK"}
+
 # Routes
 @app.get("/")
 async def root():
@@ -237,6 +242,18 @@ async def get_transactions():
 
 @app.get("/api/v1/alerts/")
 async def get_alerts():
+    return []
+
+@app.get("/api/v1/energy-bills/")
+async def get_energy_bills():
+    return []
+
+@app.get("/api/v1/water-bills/")
+async def get_water_bills():
+    return []
+
+@app.get("/api/v1/documents/")
+async def get_documents():
     return []
 
 @app.get("/api/v1/dashboard/summary")
