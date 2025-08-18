@@ -1,8 +1,7 @@
 """
 SISMOBI Backend 3.2.0 - Simple Test Server for Consumption Testing
 """
-from fastapi import FastAPI, HTTPException, Depends, Form
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Form
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
@@ -11,14 +10,14 @@ import json
 # Create FastAPI application
 app = FastAPI(title="SISMOBI Test API", version="3.2.0")
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8080"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Simple CORS headers for middleware alternative
+@app.middleware("http")
+async def add_cors_header(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 # Models
 class LoginResponse(BaseModel):
