@@ -174,6 +174,24 @@ MOCK_PROPERTIES = [
         "status": "rented",
         "rentValue": 1800,
         "energyUnitName": "Loft 301"
+    },
+    {
+        "id": "property-4",
+        "name": "Cobertura Vista",
+        "address": "Rua da Vista, 100",
+        "type": "apartment",
+        "status": "rented",
+        "rentValue": 1600,
+        "energyUnitName": "Cobertura 501"
+    },
+    {
+        "id": "property-5",
+        "name": "Apartamento Solar",
+        "address": "Av. do Sol, 200",
+        "type": "apartment",
+        "status": "rented",
+        "rentValue": 1700,
+        "energyUnitName": "Solar 201"
     }
 ]
 
