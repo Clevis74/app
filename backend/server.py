@@ -212,7 +212,7 @@ async def health_check():
 
 @app.post("/api/v1/auth/login", response_model=LoginResponse)
 async def login(username: str = Form(), password: str = Form()):
-    if username == "admin@sismobi.com" and password == "admin123456":
+    if username == "admin@sismobi.com" and password == "admin123":
         return LoginResponse(access_token="test-token", token_type="bearer")
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
