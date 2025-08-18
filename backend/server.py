@@ -63,7 +63,7 @@ MOCK_USER = {
 MOCK_TENANTS = [
     {
         "id": "tenant-1",
-        "name": "João Silva (Demo)",
+        "name": "João Silva (Válido)",
         "email": "joao.silva@email.com",
         "phone": "(11) 99999-1111",
         "cpf": "123.456.789-01",
@@ -77,7 +77,7 @@ MOCK_TENANTS = [
     },
     {
         "id": "tenant-2", 
-        "name": "Maria Ficticia (Demo)",
+        "name": "Maria Ficticia (CPF Inválido)",
         "email": "maria.ficticia@email.com",
         "phone": "(11) 99999-2222",
         "cpf": "000.000.000-00",
@@ -91,15 +91,57 @@ MOCK_TENANTS = [
     },
     {
         "id": "tenant-3",
-        "name": "Carlos Santos (Demo)",
+        "name": "Carlos Santos (Status Inativo)",
         "email": "carlos.santos@email.com", 
         "phone": "(11) 99999-3333",
         "cpf": "987.654.321-09",
-        "status": "active",
+        "status": "inactive",
         "propertyId": "property-3",
         "startDate": "2024-03-01",
         "monthlyRent": 1800,
         "deposit": 3600,
+        "paymentMethod": "À vista",
+        "formalizedContract": True
+    },
+    {
+        "id": "tenant-4",
+        "name": "Ana Oliveira (Sem Propriedade)",
+        "email": "ana.oliveira@email.com",
+        "phone": "(11) 99999-4444",
+        "cpf": "456.789.123-45",
+        "status": "active",
+        "propertyId": "",
+        "startDate": "2024-04-01",
+        "monthlyRent": 1400,
+        "deposit": 2800,
+        "paymentMethod": "À vista",
+        "formalizedContract": True
+    },
+    {
+        "id": "tenant-5",
+        "name": "Pedro Mendes (CPF Curto)",
+        "email": "pedro.mendes@email.com",
+        "phone": "(11) 99999-5555",
+        "cpf": "123.456.78",
+        "status": "active",
+        "propertyId": "property-4",
+        "startDate": "2024-05-01",
+        "monthlyRent": 1600,
+        "deposit": 3200,
+        "paymentMethod": "À vista",
+        "formalizedContract": True
+    },
+    {
+        "id": "tenant-6",
+        "name": "Luana Costa (Sem CPF)",
+        "email": "luana.costa@email.com",
+        "phone": "(11) 99999-6666",
+        "cpf": "",
+        "status": "active",
+        "propertyId": "property-5",
+        "startDate": "2024-06-01",
+        "monthlyRent": 1700,
+        "deposit": 3400,
         "paymentMethod": "À vista",
         "formalizedContract": True
     }
