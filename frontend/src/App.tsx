@@ -794,8 +794,8 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Mostrar formulário de login se não estiver autenticado
-  if (!isAuthenticated) {
+  // Mostrar formulário de login se não estiver autenticado (DESABILITADO PARA TESTE)
+  if (!forceAuthenticated && !isAuthenticated) {
     return (
       <LoginForm 
         onToggleMode={() => setIsRegisterMode(!isRegisterMode)}
