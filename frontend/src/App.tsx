@@ -904,6 +904,19 @@ const AppContent: React.FC = () => {
 
 // Componente principal com providers
 function App(): React.ReactElement {
+  // Para fins de teste, mostrar diretamente a página de validação
+  const [showValidationTest, setShowValidationTest] = useState(true);
+  
+  if (showValidationTest) {
+    return (
+      <ErrorBoundary>
+        <NotificationProvider>
+          <ValidationTestPage />
+        </NotificationProvider>
+      </ErrorBoundary>
+    );
+  }
+  
   return (
     <ErrorBoundary>
       <AuthProvider>
