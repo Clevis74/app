@@ -41,9 +41,12 @@ const LazyComponentLoader: React.FC<{ text?: string }> = ({ text = 'Carregando m
 const AppContent: React.FC = () => {
   useRenderMonitor('App');
   
-  // Auth state
+  // Auth state - MODIFICADO PARA PULAR LOGIN
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  
+  // Forçar autenticação para testar validações
+  const forceAuthenticated = true;
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showValues, setShowValues] = useState(true);
