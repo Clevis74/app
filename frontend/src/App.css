@@ -1,0 +1,63 @@
+/* Melhorias de Acessibilidade - Contraste de Cores WCAG 2.1 AA */
+.text-gray-600 {
+  color: #4a5568 !important; /* Melhora contraste para 7:1 */
+}
+
+.text-gray-500 {
+  color: #2d3748 !important; /* Melhora contraste para 9:1 */
+}
+
+.text-gray-400 {
+  color: #4a5568 !important; /* Melhora contraste para 7:1 */
+}
+
+/* Melhorar contraste em botões secundários */
+.bg-gray-100 {
+  background-color: #e2e8f0 !important;
+  color: #1a202c !important;
+}
+
+/* Melhorar contraste em estados hover */
+.hover\:bg-gray-100:hover {
+  background-color: #cbd5e0 !important;
+  color: #1a202c !important;
+}
+
+.hover\:text-gray-900:hover {
+  color: #1a202c !important;
+}
+
+/* Focus indicators mais visíveis */
+.focus\:ring-2:focus {
+  box-shadow: 0 0 0 2px #3182ce !important;
+}
+
+/* Melhorar contraste em elementos disabled */
+button:disabled,
+input:disabled,
+select:disabled {
+  background-color: #e2e8f0 !important;
+  color: #4a5568 !important;
+  opacity: 1 !important;
+}
+
+/* Melhorar contraste em badges */
+.bg-yellow-100 {
+  background-color: #fef5e7 !important;
+  color: #744210 !important;
+}
+
+.bg-green-100 {
+  background-color: #f0fff4 !important;
+  color: #2d5a2d !important;
+}
+
+.bg-red-100 {
+  background-color: #fed7d7 !important;
+  color: #742a2a !important;
+}
+
+.bg-blue-100 {
+  background-color: #ebf8ff !important;
+  color: #2a4a6b !important;
+}
