@@ -235,18 +235,28 @@ const TenantCard = React.memo(({
               <Calculator className="w-4 h-4" />
             </button>
           )}
-          <button
-            onClick={() => onEdit(tenant)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(tenant.id)}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {showButtons ? (
+            <>
+              <button
+                onClick={() => onEdit(tenant)}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Editar inquilino"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onDelete(tenant.id)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Excluir inquilino"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <div className="text-xs text-gray-500 italic">
+              Ações indisponíveis: {warnings.join(', ')}
+            </div>
+          )}
         </div>
       </div>
     </div>
