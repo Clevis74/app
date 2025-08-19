@@ -1,361 +1,326 @@
-/**
- * Report Manager - Sistema Completo de Relatórios do SISMOBI
- * Integra geração de relatórios PDF com visualização de dados
- * Autor: E1 Agent
- * Data: 2025-01-07
- */
-
-import React, { useState } from 'react';
-import { Download, TrendingUp, PieChart, BarChart3, FileBarChart, AlertCircle } from 'lucide-react';
-import { Property, Transaction, FinancialSummary } from '../../types';
-import { formatCurrency, formatDate } from '../../utils/calculations';
-import ReportsComponent from './ReportsComponent';
+import React, { useMemo, useState } from 'react';
+import { BarChart3, TrendingUp, TrendingDown, Download, Calendar, DollarSign } from 'lucide-react';
+import { Property, Transaction } from '../../types';
+import { formatCurrency, formatDate } from '../../utils/optimizedCalculations';
+import { useRenderMonitor } from '../../utils/performanceMonitor';
 
 interface ReportManagerProps {
   properties: Property[];
   transactions: Transaction[];
-  summary: FinancialSummary;
+  summary: {
+    totalRevenue: number;
+    totalExpenses: number;
+    netProfit: number;
+    occupancyRate: number;
+    averageRent: number;
+    totalInvestment: number;
+    monthlyROI: number;
+  };
   showValues: boolean;
 }
 
-export const ReportManager: React.FC<ReportManagerProps> = ({
+const ReportManager: React.FC<ReportManagerProps> = ({
   properties,
   transactions,
   summary,
   showValues
-}): JSX.Element => {
-  const [activeView, setActiveView] = useState<'generate' | 'analyze'>('generate');
+}) => {
+  useRenderMonitor('ReportManager');
+  
   const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'year'>('month');
-  const [selectedProperty, setSelectedProperty] = useState<string>('all');
+  const [reportType, setReportType] = useState<'financial' | 'properties' | 'occupancy'>('financial');
 
-  const generateLegacyReport = (): boolean => {
-    const reportData = {
-      period: selectedPeriod,
-      property: selectedProperty,
-      summary,
-      transactions: transactions.filter(t => {
-        const propertyMatch = selectedProperty === 'all' || t.propertyId === selectedProperty;
-        const dateMatch = isInSelectedPeriod(t.date);
-        return propertyMatch && dateMatch;
-      }),
-      properties: selectedProperty === 'all' ? properties : properties.filter(p => p.id === selectedProperty)
-    };
-
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `relatorio-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    return true;
-  };
-
-  const isInSelectedPeriod = (date: Date) => {
+  // Calcular dados para gráficos e relatórios
+  const reportData = useMemo(() => {
     const now = new Date();
-    const transactionDate = new Date(date);
+    let startDate: Date;
     
     switch (selectedPeriod) {
       case 'month':
-        return transactionDate.getMonth() === now.getMonth() && 
-               transactionDate.getFullYear() === now.getFullYear();
-      case 'quarter': {
-        const currentQuarter = Math.floor(now.getMonth() / 3);
-        const transactionQuarter = Math.floor(transactionDate.getMonth() / 3);
-        return transactionQuarter === currentQuarter && 
-               transactionDate.getFullYear() === now.getFullYear();
-      }
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+        break;
       case 'year':
-        return transactionDate.getFullYear() === now.getFullYear();
-      default:
-        return true;
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
     }
+
+    const periodTransactions = transactions.filter(t => 
+      new Date(t.date) >= startDate && new Date(t.date) <= now
+    );
+
+    const monthlyData = [];
+    const months = selectedPeriod === 'year' ? 12 : selectedPeriod === 'quarter' ? 3 : 1;
+    
+    for (let i = 0; i < months; i++) {
+      const monthStart = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+      const monthEnd = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 0);
+      
+      const monthTransactions = periodTransactions.filter(t => {
+        const transDate = new Date(t.date);
+        return transDate >= monthStart && transDate <= monthEnd;
+      });
+
+      const income = monthTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const expenses = monthTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      monthlyData.push({
+        month: monthStart.toLocaleDateString('pt-BR', { month: 'short' }),
+        income,
+        expenses,
+        profit: income - expenses
+      });
+    }
+
+    return {
+      periodTransactions,
+      monthlyData,
+      totalIncome: monthlyData.reduce((sum, m) => sum + m.income, 0),
+      totalExpenses: monthlyData.reduce((sum, m) => sum + m.expenses, 0),
+      totalProfit: monthlyData.reduce((sum, m) => sum + m.profit, 0)
+    };
+  }, [transactions, selectedPeriod]);
+
+  // Relatório de propriedades
+  const propertyReport = useMemo(() => {
+    return properties.map(property => {
+      const propertyTransactions = transactions.filter(t => t.propertyId === property.id);
+      const income = propertyTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+      const expenses = propertyTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      return {
+        ...property,
+        totalIncome: income,
+        totalExpenses: expenses,
+        netProfit: income - expenses,
+        roi: property.purchasePrice > 0 ? ((income - expenses) / property.purchasePrice) * 100 : 0
+      };
+    });
+  }, [properties, transactions]);
+
+  const handleExportReport = () => {
+    const reportContent = {
+      period: selectedPeriod,
+      type: reportType,
+      generatedAt: new Date(),
+      summary,
+      data: reportType === 'financial' ? reportData : propertyReport
+    };
+
+    const blob = new Blob([JSON.stringify(reportContent, null, 2)], { 
+      type: 'application/json' 
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `relatorio-${reportType}-${selectedPeriod}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
-
-  const filteredTransactions = transactions.filter(t => {
-    const propertyMatch = selectedProperty === 'all' || t.propertyId === selectedProperty;
-    const dateMatch = isInSelectedPeriod(t.date);
-    return propertyMatch && dateMatch;
-  });
-
-  const totalIncome = filteredTransactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpenses = filteredTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const netIncome = totalIncome - totalExpenses;
-
-  const expensesByCategory = filteredTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-  const incomesByCategory = filteredTransactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
 
   return (
     <div className="space-y-6">
-      {/* Header with Navigation */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-        <div className="flex items-center space-x-4">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <FileBarChart className="w-8 h-8 text-blue-600 mr-3" />
-            Sistema de Relatórios
-          </h2>
-          
-          {/* Navigation Tabs */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setActiveView('generate')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === 'generate'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              📄 Gerar PDFs
-            </button>
-            <button
-              onClick={() => setActiveView('analyze')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeView === 'analyze'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-blue-600'
-              }`}
-            >
-              📊 Analisar Dados
-            </button>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Sistema de Relatórios</h2>
+          <p className="text-gray-600 mt-1">Análise detalhada do desempenho do seu portfólio</p>
+        </div>
+        
+        <div className="flex space-x-4">
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value as 'month' | 'quarter' | 'year')}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="month">Este Mês</option>
+            <option value="quarter">Este Trimestre</option>
+            <option value="year">Este Ano</option>
+          </select>
+          <select
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value as 'financial' | 'properties' | 'occupancy')}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="financial">Relatório Financeiro</option>
+            <option value="properties">Relatório por Propriedade</option>
+            <option value="occupancy">Taxa de Ocupação</option>
+          </select>
+          <button
+            onClick={handleExportReport}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Exportar
+          </button>
+        </div>
+      </div>
+
+      {/* Resumo do Período */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <div className="flex items-center">
+            <TrendingUp className="w-5 h-5 text-green-600 mr-2" />
+            <div>
+              <p className="text-sm text-gray-600">Receita do Período</p>
+              <p className="text-lg font-bold text-green-600">
+                {showValues ? formatCurrency(reportData.totalIncome) : '****'}
+              </p>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center space-x-2 text-sm">
-          <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center">
-            <div className="w-2 h-2 bg-green-600 rounded-full mr-2"></div>
-            Sistema Ativo
+        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <div className="flex items-center">
+            <TrendingDown className="w-5 h-5 text-red-600 mr-2" />
+            <div>
+              <p className="text-sm text-gray-600">Despesas do Período</p>
+              <p className="text-lg font-bold text-red-600">
+                {showValues ? formatCurrency(reportData.totalExpenses) : '****'}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <div className="flex items-center">
+            <DollarSign className="w-5 h-5 text-blue-600 mr-2" />
+            <div>
+              <p className="text-sm text-gray-600">Lucro do Período</p>
+              <p className={`text-lg font-bold ${reportData.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {showValues ? formatCurrency(reportData.totalProfit) : '****'}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <div className="flex items-center">
+            <BarChart3 className="w-5 h-5 text-purple-600 mr-2" />
+            <div>
+              <p className="text-sm text-gray-600">ROI do Período</p>
+              <p className="text-lg font-bold text-purple-600">
+                {showValues ? `${((reportData.totalProfit / summary.totalInvestment) * 100).toFixed(2)}%` : '****'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Content based on active view */}
-      {activeView === 'generate' ? (
-        /* PDF Reports Generation */
-        <ReportsComponent showValues={showValues} />
-      ) : (
-        /* Legacy Analysis View */
-        <div className="space-y-6">
-          {/* Info Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center">
-            <AlertCircle className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
-              <strong>Análise de Dados:</strong> Visualize e analise suas informações financeiras antes de gerar relatórios detalhados em PDF.
-            </div>
+      {/* Conteúdo do Relatório */}
+      {reportType === 'financial' && (
+        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Evolução Financeira</h3>
+          <div className="space-y-4">
+            {reportData.monthlyData.map((month, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-900">{month.month}</span>
+                <div className="flex space-x-4">
+                  <span className="text-green-600">
+                    +{showValues ? formatCurrency(month.income) : '****'}
+                  </span>
+                  <span className="text-red-600">
+                    -{showValues ? formatCurrency(month.expenses) : '****'}
+                  </span>
+                  <span className={`font-bold ${month.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {showValues ? formatCurrency(month.profit) : '****'}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+      )}
 
-          {/* Filtros */}
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Período</label>
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value as 'month' | 'quarter' | 'year')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="month">Este mês</option>
-                  <option value="quarter">Este trimestre</option>
-                  <option value="year">Este ano</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Propriedade</label>
-                <select
-                  value={selectedProperty}
-                  onChange={(e) => setSelectedProperty(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">Todas as propriedades</option>
-                  {properties.map(property => (
-                    <option key={property.id} value={property.id}>
-                      {property.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={generateLegacyReport}
-                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar JSON
-              </button>
-            </div>
-          </div>
-
-          {/* Resumo Financeiro */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Receitas</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {showValues ? formatCurrency(totalIncome) : '****'}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Despesas</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {showValues ? formatCurrency(totalExpenses) : '****'}
-                  </p>
-                </div>
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <BarChart3 className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Lucro Líquido</p>
-                  <p className={`text-2xl font-bold ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {showValues ? formatCurrency(netIncome) : '****'}
-                  </p>
-                </div>
-                <div className={`p-3 rounded-lg ${netIncome >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-                  <PieChart className={`w-6 h-6 ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Detalhamento por Categoria */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Receitas por Categoria</h3>
-              <div className="space-y-3">
-                {Object.entries(incomesByCategory).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between items-center">
-                    <span className="text-gray-700">{category}</span>
-                    <span className="font-medium text-green-600">
-                      {showValues ? formatCurrency(amount) : '****'}
-                    </span>
+      {reportType === 'properties' && (
+        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Desempenho por Propriedade</h3>
+          <div className="space-y-4">
+            {propertyReport.map((property) => (
+              <div key={property.id} className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{property.name}</h4>
+                    <p className="text-sm text-gray-600">{property.address}</p>
                   </div>
-                ))}
-                {Object.keys(incomesByCategory).length === 0 && (
-                  <p className="text-gray-500 text-center py-4">Nenhuma receita no período</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Despesas por Categoria</h3>
-              <div className="space-y-3">
-                {Object.entries(expensesByCategory).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between items-center">
-                    <span className="text-gray-700">{category}</span>
-                    <span className="font-medium text-red-600">
-                      {showValues ? formatCurrency(amount) : '****'}
-                    </span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    property.status === 'rented' ? 'bg-green-100 text-green-800' : 
+                    property.status === 'vacant' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {property.status === 'rented' ? 'Alugada' : 
+                     property.status === 'vacant' ? 'Vaga' : 'Manutenção'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">Receita</p>
+                    <p className="font-medium text-green-600">
+                      {showValues ? formatCurrency(property.totalIncome) : '****'}
+                    </p>
                   </div>
-                ))}
-                {Object.keys(expensesByCategory).length === 0 && (
-                  <p className="text-gray-500 text-center py-4">Nenhuma despesa no período</p>
-                )}
+                  <div>
+                    <p className="text-gray-600">Despesas</p>
+                    <p className="font-medium text-red-600">
+                      {showValues ? formatCurrency(property.totalExpenses) : '****'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Lucro Líquido</p>
+                    <p className={`font-medium ${property.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {showValues ? formatCurrency(property.netProfit) : '****'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">ROI</p>
+                    <p className="font-medium text-blue-600">
+                      {showValues ? `${property.roi.toFixed(2)}%` : '****'}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+        </div>
+      )}
 
-          {/* Transações Recentes */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Transações do Período</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Data
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tipo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Categoria
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Descrição
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Valor
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTransactions.slice(0, 10).map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(transaction.date)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${
-                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {transaction.type === 'income' ? 'Receita' : 'Despesa'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {transaction.category}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {transaction.description}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${
-                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {transaction.type === 'income' ? '+' : '-'}{showValues ? formatCurrency(transaction.amount) : '****'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {filteredTransactions.length > 10 && (
-              <div className="p-4 text-center text-sm text-gray-500">
-                Exibindo 10 de {filteredTransactions.length} transações
+      {reportType === 'occupancy' && (
+        <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Taxa de Ocupação</h3>
+          <div className="space-y-4">
+            <div className="text-center p-8">
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {showValues ? `${summary.occupancyRate.toFixed(1)}%` : '****'}
               </div>
-            )}
-            {filteredTransactions.length === 0 && (
-              <div className="p-8 text-center">
-                <FileBarChart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma transação encontrada</h3>
-                <p className="text-gray-500">
-                  Não há transações para o período e filtros selecionados.
-                </p>
+              <p className="text-gray-600">Taxa de Ocupação Atual</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {properties.filter(p => p.status === 'rented').length}
+                </div>
+                <p className="text-green-700">Propriedades Alugadas</p>
               </div>
-            )}
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {properties.filter(p => p.status === 'vacant').length}
+                </div>
+                <p className="text-yellow-700">Propriedades Vagas</p>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {properties.filter(p => p.status === 'maintenance').length}
+                </div>
+                <p className="text-red-700">Em Manutenção</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
