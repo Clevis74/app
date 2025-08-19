@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { 
   Plus, Edit, Trash2, User, Phone, Mail, Calendar, 
   AlertTriangle, CheckCircle, Eye, EyeOff, Search, Calculator
-} from '../../../icons';
+} from '../../icons';
 import { Tenant, Property, EnergyBill, WaterBill } from '../../types';
 import { TenantForm } from './TenantForm';
 import { ConsumptionModal } from './ConsumptionModal';
