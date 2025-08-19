@@ -904,8 +904,8 @@ const AppContent: React.FC = () => {
 
 // Componente principal com providers
 function App(): React.ReactElement {
-  // Para fins de teste, mostrar diretamente a página de validação
-  const [showValidationTest, setShowValidationTest] = useState(true);
+  // Remover modo de teste - mostrar aplicação completa
+  const [showValidationTest, setShowValidationTest] = useState(false);
   
   if (showValidationTest) {
     return (
