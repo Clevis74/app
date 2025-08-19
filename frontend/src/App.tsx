@@ -46,8 +46,8 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   
-  // Modo de produção - autenticação normal
-  const forceAuthenticated = false;
+  // Modo de produção - pular autenticação para demonstração
+  const forceAuthenticated = true;
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showValues, setShowValues] = useState(true);
