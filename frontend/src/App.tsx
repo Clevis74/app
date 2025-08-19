@@ -911,7 +911,7 @@ function App(): React.ReactElement {
     return (
       <ErrorBoundary>
         <NotificationProvider>
-          <ValidationTestPage />
+          <ValidationTestFocus />
         </NotificationProvider>
       </ErrorBoundary>
     );
