@@ -2,6 +2,7 @@
 SISMOBI Backend 3.2.0 - Simple Test Server for Consumption Testing
 """
 from fastapi import FastAPI, HTTPException, Form
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List
@@ -12,6 +13,15 @@ app = FastAPI(
     title="SISMOBI Test API", 
     version="3.2.0",
     openapi_url="/api/v1/openapi.json"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Models
