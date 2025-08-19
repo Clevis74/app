@@ -265,7 +265,7 @@ const TenantCard = React.memo(({
 
 TenantCard.displayName = 'TenantCard';
 
-export const OptimizedTenantManager: React.FC<{
+const OptimizedTenantManager: React.FC<{
   tenants: Tenant[];
   properties: Property[];
   energyBills: EnergyBill[];
