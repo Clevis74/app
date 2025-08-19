@@ -49,7 +49,7 @@ const AppContent: React.FC = () => {
   // Modo de produção - pular autenticação para demonstração
   const forceAuthenticated = true;
   
-  const [activeTab, setActiveTab] = useState('tenants');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [showValues, setShowValues] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
