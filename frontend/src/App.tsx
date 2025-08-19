@@ -7,6 +7,7 @@ import { LoginForm } from './components/Auth/LoginForm';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { SkipLinks } from './components/common/SkipLinks';
 import { NotificationProvider, useBackupAlerts, useAsyncNotification } from './components/common/NotificationSystem';
+import ValidationTestPage from './components/ValidationTest';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
 import { OptimizedDashboard } from './components/Dashboard/OptimizedDashboard';
