@@ -724,3 +724,5 @@ const WaterCalculator: React.FC<{
     </div>
   );
 };
+
+export default WaterCalculator;
