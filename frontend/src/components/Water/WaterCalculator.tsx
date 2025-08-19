@@ -22,7 +22,7 @@ interface _WaterCalculatorProps {
   onDeleteWaterBill: (id: string) => void;
 }
 
-export const WaterCalculator: React.FC<{
+const WaterCalculator: React.FC<{
   waterBills,
   properties,
   showValues,
