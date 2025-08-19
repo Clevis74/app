@@ -8,6 +8,11 @@ export default defineConfig({
     allowedHosts: [
       'validation-logic.preview.emergentagent.com',
       'mock-data-review.preview.emergentagent.com'
-    ]
+    ],
+    cors: true,
+    strictPort: false,
+    hmr: {
+      clientPort: 3000
+    }
   }
 });
