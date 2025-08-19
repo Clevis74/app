@@ -43,8 +43,8 @@ const isValidCPF = (cpf: string): boolean => {
 const shouldShowActionButtons = (tenant: Tenant): boolean => {
   return isValidCPF(tenant.cpf) && 
          tenant.status === 'active' && 
-         tenant.property_id && 
-         tenant.property_id.trim() !== '';
+         tenant.propertyId && 
+         tenant.propertyId.trim() !== '';
 };
 
 // Função para gerar avisos visuais
@@ -63,7 +63,7 @@ const getValidationWarnings = (tenant: Tenant): string[] => {
     warnings.push('Status inativo');
   }
   
-  if (!tenant.property_id || tenant.property_id.trim() === '') {
+  if (!tenant.propertyId || tenant.propertyId.trim() === '') {
     warnings.push('Propriedade não vinculada');
   }
   
