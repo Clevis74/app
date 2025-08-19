@@ -14,8 +14,13 @@ export default defineConfig({
       "mock-data-review.preview.emergentagent.com"
     ],
     hmr: {
-      overlay: false
-    }
+      overlay: false,
+      clientPort: 3000
+    },
+    // Configurações para evitar rate limiting
+    middlewareMode: false,
+    cors: true,
+    strictPort: false
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
