@@ -446,3 +446,5 @@ export const OptimizedTenantManager: React.FC<{
     </div>
   );
 };
+
+export default OptimizedTenantManager;
