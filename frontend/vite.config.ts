@@ -23,6 +23,6 @@ export default defineConfig({
     strictPort: false
   },
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    include: ['lucide-react'],
   },
 });
