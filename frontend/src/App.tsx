@@ -866,17 +866,29 @@ const AppContent: React.FC = () => {
             <span className="sr-only">Menu de navegação</span>
           </button>
 
-          <main id="main-content" className="flex-1 p-6 overflow-y-auto" role="main">
+          <main 
+            id="main-content" 
+            className="flex-1 p-6 overflow-y-auto" 
+            role="main"
+            aria-label="Conteúdo principal da aplicação"
+            tabIndex={-1}
+          >
             <ErrorBoundary>
               {isLoading ? (
-                <div className="flex items-center justify-center h-64">
+                <div 
+                  className="flex items-center justify-center h-64"
+                  role="status"
+                  aria-live="polite"
+                >
                   <LoadingSpinner 
                     size="lg" 
                     text="Sincronizando dados..." 
                   />
                 </div>
               ) : (
-                renderContent()
+                <div role="region" aria-label="Conteúdo dinâmico da seção ativa">
+                  {renderContent()}
+                </div>
               )}
             </ErrorBoundary>
           </main>
