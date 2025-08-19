@@ -4,7 +4,7 @@
 import { Property, Tenant, Transaction, Alert, Document, /* EnergyBill, WaterBill */ } from '../types';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const API_PREFIX = import.meta.env.REACT_APP_API_PREFIX || '/api/v1';
 
 // Auth token management
