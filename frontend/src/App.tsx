@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginForm } from './components/Auth/LoginForm';
 // import { ProtectedRoute } from './components/Auth/ProtectedRoute'; // Not used in current implementation
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { SkipLinks } from './components/common/SkipLinks';
+import { SkipLinks } from './components/Accessibility/SkipLinks';
 import { NotificationProvider, useBackupAlerts, useAsyncNotification } from './components/common/NotificationSystem';
 import ValidationTestPage from './components/ValidationTest';
 import { Sidebar } from './components/Layout/Sidebar';
