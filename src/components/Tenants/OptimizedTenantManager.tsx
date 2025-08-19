@@ -1,10 +1,73 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, User, Phone, Mail, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Phone, Mail, Calendar, AlertTriangle } from 'lucide-react';
 import { Tenant } from '../../types';
 import { TenantForm } from './TenantForm';
 import { formatDate, formatCurrency } from '../../utils/optimizedCalculations';
 import { useRenderMonitor } from '../../utils/performanceMonitor';
 import { useDebouncedCallback } from '../../utils/debounceUtils';
+
+// Função para validar CPF
+const isValidCPF = (cpf: string): boolean => {
+  if (!cpf || cpf.trim() === '') return false;
+  
+  // Remove formatação
+  const cleanCPF = cpf.replace(/\D/g, '');
+  
+  // Verificações básicas
+  if (cleanCPF.length !== 11) return false;
+  if (cleanCPF === '00000000000') return false;
+  if (/^(\d)\1+$/.test(cleanCPF)) return false; // Todos os dígitos iguais
+  
+  // Validação dos dígitos verificadores
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
+  }
+  let digit = 11 - (sum % 11);
+  if (digit === 10 || digit === 11) digit = 0;
+  if (digit !== parseInt(cleanCPF.charAt(9))) return false;
+  
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
+  }
+  digit = 11 - (sum % 11);
+  if (digit === 10 || digit === 11) digit = 0;
+  if (digit !== parseInt(cleanCPF.charAt(10))) return false;
+  
+  return true;
+};
+
+// Função para validar se o inquilino deve exibir botões de ação
+const shouldShowActionButtons = (tenant: Tenant): boolean => {
+  return isValidCPF(tenant.cpf) && 
+         tenant.status === 'active' && 
+         tenant.propertyId && 
+         tenant.propertyId.trim() !== '';
+};
+
+// Função para gerar avisos visuais
+const getValidationWarnings = (tenant: Tenant): string[] => {
+  const warnings = [];
+  
+  if (!isValidCPF(tenant.cpf)) {
+    if (!tenant.cpf || tenant.cpf.trim() === '') {
+      warnings.push('CPF não informado');
+    } else {
+      warnings.push('CPF inválido');
+    }
+  }
+  
+  if (tenant.status !== 'active') {
+    warnings.push('Status inativo');
+  }
+  
+  if (!tenant.propertyId || tenant.propertyId.trim() === '') {
+    warnings.push('Propriedade não vinculada');
+  }
+  
+  return warnings;
+};
 
 interface OptimizedTenantManagerProps {
   tenants: Tenant[];
