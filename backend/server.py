@@ -2,27 +2,27 @@
 SISMOBI Backend 3.2.0 - Simple Test Server for Consumption Testing
 """
 from fastapi import FastAPI, HTTPException, Form
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List
 import json
 
-# Create FastAPI application with basic config
-app = FastAPI(
-    title="SISMOBI Test API", 
-    version="3.2.0",
-    openapi_url="/api/v1/openapi.json"
-)
+# Create simple FastAPI application
+app = FastAPI(title="SISMOBI Test API", version="3.2.0")
 
-# Add CORS middleware with correct configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Simple CORS handling with middleware setup
+@app.middleware("http")
+async def cors_handler(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    return {"message": "OK"}
 
 # Models
 class LoginResponse(BaseModel):
