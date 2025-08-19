@@ -15,10 +15,10 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json"
 )
 
-# Add CORS middleware - FIXED
+# Add CORS middleware with correct configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
