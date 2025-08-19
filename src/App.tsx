@@ -45,20 +45,122 @@ const AppContent: React.FC = () => {
   const stablePropertiesRef = useRef<Property[]>([]);
   const stableTransactionsRef = useRef<Transaction[]>([]);
   
-  // Atualizar refs apenas quando dados mudarem estruturalmente
+  // Fallback: Adicionar dados de teste se localStorage estiver vazio
   useEffect(() => {
-    const propsStringified = JSON.stringify(properties);
-    const transStringified = JSON.stringify(transactions);
-    const stablePropsStringified = JSON.stringify(stablePropertiesRef.current);
-    const stableTransStringified = JSON.stringify(stableTransactionsRef.current);
-    
-    if (propsStringified !== stablePropsStringified) {
-      stablePropertiesRef.current = properties;
-    }
-    if (transStringified !== stableTransStringified) {
-      stableTransactionsRef.current = transactions;
-    }
-  }, [properties, transactions]);
+    const addFallbackData = () => {
+      if (tenants.length === 0) {
+        const fallbackTenants = [
+          {
+            id: 'tenant-1',
+            propertyId: 'prop-1',
+            name: 'João Silva (Válido)',
+            email: 'joao@email.com',
+            cpf: '123.456.789-01',
+            phone: '(11) 99999-9999',
+            startDate: new Date(),
+            monthlyRent: 1500,
+            deposit: 3000,
+            status: 'active' as const,
+            formalizedContract: true,
+            paymentMethod: 'À vista' as const
+          },
+          {
+            id: 'tenant-2',
+            propertyId: '',
+            name: 'Maria Santos (Sem Propriedade)',
+            email: 'maria@email.com',
+            cpf: '987.654.321-00',
+            phone: '(11) 88888-8888',
+            startDate: new Date(),
+            monthlyRent: 1200,
+            deposit: 2400,
+            status: 'active' as const,
+            formalizedContract: true,
+            paymentMethod: 'À vista' as const
+          },
+          {
+            id: 'tenant-3',
+            propertyId: 'prop-1',
+            name: 'Carlos Lima (CPF Fictício)',
+            email: 'carlos@email.com',
+            cpf: '000.000.000-00',
+            phone: '(11) 77777-7777',
+            startDate: new Date(),
+            monthlyRent: 1300,
+            deposit: 2600,
+            status: 'active' as const,
+            formalizedContract: true,
+            paymentMethod: 'À vista' as const
+          },
+          {
+            id: 'tenant-4',
+            propertyId: 'prop-1',
+            name: 'Ana Oliveira (Status Inativo)',
+            email: 'ana@email.com',
+            cpf: '456.789.123-45',
+            phone: '(11) 66666-6666',
+            startDate: new Date(),
+            monthlyRent: 1400,
+            deposit: 2800,
+            status: 'inactive' as const,
+            formalizedContract: true,
+            paymentMethod: 'À vista' as const
+          },
+          {
+            id: 'tenant-5',
+            propertyId: 'prop-1',
+            name: 'Pedro Mendes (CPF Curto)',
+            email: 'pedro@email.com',
+            cpf: '123.456.78',
+            phone: '(11) 55555-5555',
+            startDate: new Date(),
+            monthlyRent: 1100,
+            deposit: 2200,
+            status: 'active' as const,
+            formalizedContract: true,
+            paymentMethod: 'À vista' as const
+          },
+          {
+            id: 'tenant-6',
+            propertyId: 'prop-1',
+            name: 'Luana Costa (Sem CPF)',
+            email: 'luana@email.com',
+            cpf: '',
+            phone: '(11) 44444-4444',
+            startDate: new Date(),
+            monthlyRent: 1600,
+            deposit: 3200,
+            status: 'active' as const,
+            formalizedContract: true,
+            paymentMethod: 'À vista' as const
+          }
+        ];
+
+        // Adicionar propriedade para teste
+        const fallbackProperty = {
+          id: 'prop-1',
+          name: 'Apartamento das Flores',
+          address: 'Rua das Flores, 123',
+          type: 'apartment' as const,
+          purchasePrice: 200000,
+          rentValue: 1500,
+          status: 'rented' as const,
+          createdAt: new Date()
+        };
+
+        if (properties.length === 0) {
+          setProperties([fallbackProperty]);
+        }
+        setTenants(fallbackTenants);
+        
+        console.log('✅ Dados de fallback adicionados para testes');
+      }
+    };
+
+    // Adicionar dados após um pequeno delay para evitar conflitos
+    const timer = setTimeout(addFallbackData, 500);
+    return () => clearTimeout(timer);
+  }, []); // Executar apenas uma vez
 
   // Hash para dependências estáveis do useMemo
   const propertiesHash = useMemo(() => {
