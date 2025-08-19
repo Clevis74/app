@@ -1,100 +1,86 @@
 #!/usr/bin/env python3
 """
-SISMOBI Backend 3.2.0 - Simple HTTP Server for testing APIs
+SISMOBI Backend Simples - Versão funcional
 """
-import json
-import uuid
+from fastapi import FastAPI, Form, HTTPException
 from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+import json
 
-class SISMOBIHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        parsed_path = urlparse(self.path)
-        path = parsed_path.path
-        
-        # Set CORS headers
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        
-        # Route handling
-        if path == '/api/health':
-            response = {
-                "status": "healthy",
-                "service": "SISMOBI Backend",
-                "version": "3.2.0",
-                "timestamp": datetime.now().isoformat(),
-                "database_status": "connected"
-            }
-        elif path == '/api/v1/documents':
-            response = {
-                "items": [],
-                "total": 0,
-                "has_more": False,
-                "message": "Documents API working - Phase 5 complete"
-            }
-        elif path == '/api/v1/energy-bills':
-            response = {
-                "items": [],
-                "total": 0,
-                "has_more": False,
-                "message": "Energy Bills API working - Phase 5 complete"
-            }
-        elif path == '/api/v1/water-bills':
-            response = {
-                "items": [],
-                "total": 0,
-                "has_more": False,
-                "message": "Water Bills API working - Phase 5 complete"
-            }
-        elif path == '/api/v1/alerts':
-            response = {
-                "items": [],
-                "total": 0,
-                "has_more": False,
-                "message": "Alerts API working - Phase 5 complete"
-            }
-        elif path == '/api/v1/reports/available-filters':
-            response = {
-                "properties": [],
-                "tenants": [],
-                "message": "Reports API working - Phase 5 complete"
-            }
-        elif path == '/':
-            response = {
-                "message": "SISMOBI API 3.2.0 is running",
-                "status": "active",
-                "version": "3.2.0",
-                "phase": "4+5 Implementation Complete",
-                "timestamp": datetime.now().isoformat()
-            }
-        else:
-            response = {
-                "error": "Not Found",
-                "path": path,
-                "message": "API endpoint not found"
-            }
-        
-        self.wfile.write(json.dumps(response, indent=2).encode())
+app = FastAPI()
 
-    def do_OPTIONS(self):
-        # Handle preflight requests
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        self.end_headers()
+# Dados mock
+MOCK_USER = {
+    "id": "admin-001",
+    "email": "admin@sismobi.com",
+    "full_name": "Administrador SISMOBI",
+    "is_active": True
+}
 
-def run_server():
-    server_address = ('0.0.0.0', 8001)
-    httpd = HTTPServer(server_address, SISMOBIHandler)
-    print(f"🚀 SISMOBI Backend 3.2.0 running on http://0.0.0.0:8001")
-    print("Phase 4+5 Implementation Complete ✅")
-    httpd.serve_forever()
+MOCK_TENANTS = [
+    {
+        "id": "tenant-1",
+        "name": "João Silva (CPF Válido)",
+        "email": "joao.silva@email.com",
+        "phone": "(11) 99999-1111",
+        "cpf": "11144477735",
+        "status": "active",
+        "propertyId": "property-1",
+        "startDate": "2024-01-01",
+        "monthlyRent": 1500.0,
+        "deposit": 3000.0,
+        "paymentMethod": "À vista",
+        "formalizedContract": True
+    }
+]
 
-if __name__ == '__main__':
-    run_server()
+# Headers CORS manuais
+@app.middleware("http")
+async def cors_handler(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    return {"message": "OK"}
+
+@app.get("/")
+async def root():
+    return {"message": "SISMOBI API v3.2.0", "status": "online"}
+
+@app.get("/api/health")
+async def health():
+    return {
+        "status": "healthy",
+        "service": "SISMOBI Backend",
+        "version": "3.2.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.post("/api/v1/auth/login")
+async def login(username: str = Form(), password: str = Form()):
+    if username == "admin@sismobi.com" and password in ["admin123", "admin123456"]:
+        return {
+            "access_token": "mock-jwt-token-123",
+            "token_type": "bearer"
+        }
+    raise HTTPException(status_code=401, detail="Credenciais inválidas")
+
+@app.get("/api/v1/auth/me")
+async def get_user():
+    return MOCK_USER
+
+@app.get("/api/v1/auth/verify")
+async def verify():
+    return {"valid": True, "user": MOCK_USER, "message": "Token válido", "status": "success"}
+
+@app.get("/api/v1/tenants/")
+async def get_tenants():
+    return MOCK_TENANTS
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
