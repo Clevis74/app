@@ -1,88 +1,210 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, FileText, Calendar, User, Home, AlertCircle, CheckCircle, Clock, Filter } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Plus, Edit, Trash2, FileText, Download, Upload, Search } from 'lucide-react';
 import { Document, Property, Tenant } from '../../types';
 import { DocumentForm } from './DocumentForm';
-import { formatDate } from '../../utils/calculations';
+import { formatDate } from '../../utils/optimizedCalculations';
+import { useRenderMonitor } from '../../utils/performanceMonitor';
+import { useDebouncedCallback } from '../../utils/debounceUtils';
 
-interface _DocumentManagerProps {
+interface DocumentManagerProps {
   documents: Document[];
   properties: Property[];
   tenants: Tenant[];
   onAddDocument: (document: Omit<Document, 'id' | 'lastUpdated'>) => void;
-  onUpdateDocument: (id: string, document: Partial<Document>) => void;
+  onUpdateDocument: (id: string, updates: Partial<Document>) => void;
   onDeleteDocument: (id: string) => void;
 }
 
-export const DocumentManager: React.FC<{
+// Componente de card de documento memoizado
+const DocumentCard = React.memo(({ 
+  document, 
+  linkedProperty, 
+  linkedTenant,
+  onEdit, 
+  onDelete,
+  onDownload
+}: {
+  document: Document;
+  linkedProperty?: Property;
+  linkedTenant?: Tenant;
+  onEdit: (document: Document) => void;
+  onDelete: (id: string) => void;
+  onDownload: (document: Document) => void;
+}) => {
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'contract': return 'bg-blue-100 text-blue-800';
+      case 'receipt': return 'bg-green-100 text-green-800';
+      case 'invoice': return 'bg-yellow-100 text-yellow-800';
+      case 'report': return 'bg-purple-100 text-purple-800';
+      case 'other': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getTypeText = (type: string) => {
+    switch (type) {
+      case 'contract': return 'Contrato';
+      case 'receipt': return 'Recibo';
+      case 'invoice': return 'Fatura';
+      case 'report': return 'Relatório';
+      case 'other': return 'Outro';
+      default: return 'Documento';
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+              <FileText className="w-5 h-5 text-gray-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{document.title}</h3>
+              <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(document.type)}`}>
+                {getTypeText(document.type)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {document.description && (
+          <p className="text-gray-600 text-sm mb-4">{document.description}</p>
+        )}
+
+        <div className="text-sm text-gray-500 mb-4 space-y-1">
+          {linkedProperty && (
+            <p>Propriedade: {linkedProperty.name}</p>
+          )}
+          {linkedTenant && (
+            <p>Inquilino: {linkedTenant.name}</p>
+          )}
+          <p>Criado: {formatDate(document.createdAt)}</p>
+          <p>Atualizado: {formatDate(document.lastUpdated)}</p>
+          {document.filePath && (
+            <p>Arquivo: {document.filePath.split('/').pop()}</p>
+          )}
+        </div>
+
+        <div className="flex justify-end space-x-2">
+          {document.filePath && (
+            <button
+              onClick={() => onDownload(document)}
+              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+              title="Download do documento"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={() => onEdit(document)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Editar documento"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDelete(document.id)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Excluir documento"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+DocumentCard.displayName = 'DocumentCard';
+
+const DocumentManager: React.FC<DocumentManagerProps> = ({
   documents,
   properties,
   tenants,
   onAddDocument,
   onUpdateDocument,
   onDeleteDocument
-}> = ({
-  documents,
-  properties,
-  tenants,
-  onAddDocument,
-  onUpdateDocument,
-  onDeleteDocument
-}): JSX.Element => {
+}) => {
+  useRenderMonitor('DocumentManager');
+  
   const [showForm, setShowForm] = useState(false);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
-  const [filter, setFilter] = useState<'all' | 'valid' | 'expired' | 'pending'>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
 
-  const handleAddDocument = (documentData: Omit<Document, 'id' | 'lastUpdated'>): void => {
+  // Memoizar documentos filtrados
+  const filteredDocuments = useMemo(() => {
+    let filtered = documents;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(doc => 
+        doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (filterType !== 'all') {
+      filtered = filtered.filter(doc => doc.type === filterType);
+    }
+    
+    return filtered.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
+  }, [documents, searchTerm, filterType]);
+
+  // Memoizar propriedades e inquilinos vinculados
+  const linkedData = useMemo(() => {
+    const propertyMap = new Map(properties.map(p => [p.id, p]));
+    const tenantMap = new Map(tenants.map(t => [t.id, t]));
+    return { propertyMap, tenantMap };
+  }, [properties, tenants]);
+
+  // Callbacks memoizados
+  const handleAddDocument = useCallback((documentData: Omit<Document, 'id' | 'lastUpdated'>) => {
     onAddDocument(documentData);
     setShowForm(false);
-  };
+  }, [onAddDocument]);
 
-  const handleEditDocument = (document: Document): void => {
+  const handleEditDocument = useCallback((document: Document) => {
     setEditingDocument(document);
     setShowForm(true);
-  };
+  }, []);
 
-  const handleUpdateDocument = (documentData: Omit<Document, 'id' | 'lastUpdated'>): void => {
+  const handleUpdateDocument = useCallback((documentData: Omit<Document, 'id' | 'lastUpdated'>) => {
     if (editingDocument) {
       onUpdateDocument(editingDocument.id, documentData);
       setEditingDocument(null);
       setShowForm(false);
     }
-  };
+  }, [editingDocument, onUpdateDocument]);
 
-  const filteredDocuments = documents.filter(document => {
-    const statusMatch = filter === 'all' || 
-      (filter === 'valid' && document.status === 'Válido') ||
-      (filter === 'expired' && document.status === 'Expirado') ||
-      (filter === 'pending' && document.status === 'Pendente');
-    
-    const typeMatch = typeFilter === 'all' || document.type === typeFilter;
-    
-    return statusMatch && typeMatch;
-  });
+  const handleCancelForm = useCallback(() => {
+    setShowForm(false);
+    setEditingDocument(null);
+  }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Válido': return 'bg-green-100 text-green-800';
-      case 'Expirado': return 'bg-red-100 text-red-800';
-      case 'Pendente': return 'bg-yellow-100 text-yellow-800';
-      case 'Revisão': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const handleDownload = useCallback((document: Document) => {
+    // Implementar download do documento
+    // Por enquanto, apenas simular o download
+    console.log('Download documento:', document.title);
+    alert(`Download iniciado: ${document.title}`);
+  }, []);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Válido': return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'Expirado': return <AlertCircle className="w-4 h-4 text-red-600" />;
-      case 'Pendente': return <Clock className="w-4 h-4 text-yellow-600" />;
-      case 'Revisão': return <AlertCircle className="w-4 h-4 text-blue-600" />;
-      default: return <FileText className="w-4 h-4 text-gray-600" />;
-    }
-  };
+  // Debounce para busca
+  const debouncedSearch = useDebouncedCallback((term: string) => {
+    setSearchTerm(term);
+  }, 300);
 
-  const documentTypes = [...new Set(documents.map(d => d.type))];
+  // Tipos de documento disponíveis
+  const documentTypes = [
+    { value: 'all', label: 'Todos os tipos' },
+    { value: 'contract', label: 'Contratos' },
+    { value: 'receipt', label: 'Recibos' },
+    { value: 'invoice', label: 'Faturas' },
+    { value: 'report', label: 'Relatórios' },
+    { value: 'other', label: 'Outros' }
+  ];
 
   return (
     <div className="space-y-6">
@@ -90,47 +212,36 @@ export const DocumentManager: React.FC<{
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Gestão de Documentos</h2>
           <p className="text-gray-600 mt-1">
-            {documents.length} documento{documents.length !== 1 ? 's' : ''} cadastrado{documents.length !== 1 ? 's' : ''}
+            {filteredDocuments.length} de {documents.length} documento{documents.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Documento
-        </button>
-      </div>
-
-      {/* Filtros */}
-      <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Filtros:</span>
-          </div>
-          
+        
+        <div className="flex space-x-4">
           <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as 'all' | 'valid' | 'expired' | 'pending')}
-            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">Todos os status</option>
-            <option value="valid">Válidos</option>
-            <option value="expired">Expirados</option>
-            <option value="pending">Pendentes</option>
-          </select>
-
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Todos os tipos</option>
             {documentTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
+              <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar documentos..."
+              onChange={(e) => debouncedSearch(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Documento
+          </button>
         </div>
       </div>
 
@@ -140,134 +251,44 @@ export const DocumentManager: React.FC<{
           properties={properties}
           tenants={tenants}
           onSubmit={editingDocument ? handleUpdateDocument : handleAddDocument}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingDocument(null);
-          }}
+          onCancel={handleCancelForm}
         />
       )}
 
-      {/* Lista de Documentos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredDocuments.map((document) => {
-          const property = properties.find(p => p.id === document.propertyId);
-          const tenant = tenants.find(t => t.id === document.tenantId);
+          const linkedProperty = document.propertyId ? linkedData.propertyMap.get(document.propertyId) : undefined;
+          const linkedTenant = document.tenantId ? linkedData.tenantMap.get(document.tenantId) : undefined;
           
           return (
-            <div key={document.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <FileText className="w-8 h-8 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">{document.type}</h3>
-                    <div className="flex items-center space-x-2 mt-1">
-                      {getStatusIcon(document.status)}
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(document.status)}`}>
-                        {document.status}
-                      </span>
-                      {document.contractSigned && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Assinado
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleEditDocument(document)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDeleteDocument(document.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>Emissão: {formatDate(document.issueDate)}</span>
-                  </div>
-                  
-                  {document.hasValidity && document.validityDate && (
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>Validade: {formatDate(document.validityDate)}</span>
-                    </div>
-                  )}
-                  
-                  {!document.hasValidity && (
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>Sem validade</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Home className="w-4 h-4 mr-2" />
-                    <span>Propriedade: {property?.name || 'Não encontrada'}</span>
-                  </div>
-                  
-                  {tenant && (
-                    <div className="flex items-center text-gray-600">
-                      <User className="w-4 h-4 mr-2" />
-                      <span>Inquilino: {tenant.name}</span>
-                    </div>
-                  )}
-                </div>
-
-                {document.fileName && (
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Arquivo:</span> {document.fileName}
-                  </div>
-                )}
-
-                {document.observations && (
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Observações:</span>
-                    <p className="mt-1 text-gray-700">{document.observations}</p>
-                  </div>
-                )}
-
-                <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
-                  Última atualização: {formatDate(document.lastUpdated)}
-                </div>
-              </div>
-            </div>
+            <DocumentCard
+              key={document.id}
+              document={document}
+              linkedProperty={linkedProperty}
+              linkedTenant={linkedTenant}
+              onEdit={handleEditDocument}
+              onDelete={onDeleteDocument}
+              onDownload={handleDownload}
+            />
           );
         })}
       </div>
 
       {filteredDocuments.length === 0 && (
         <div className="text-center py-12">
-          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <FileText className="w-8 h-8 text-gray-400" />
+          </div>
           <p className="text-gray-500 text-lg">
-            {filter === 'all' && typeFilter === 'all' 
-              ? 'Nenhum documento cadastrado' 
-              : 'Nenhum documento encontrado com os filtros aplicados'
-            }
+            {searchTerm || filterType !== 'all' ? 'Nenhum documento encontrado' : 'Nenhum documento cadastrado'}
           </p>
           <p className="text-gray-400 mt-2">
-            {filter === 'all' && typeFilter === 'all'
-              ? 'Comece adicionando seu primeiro documento'
-              : 'Tente ajustar os filtros ou adicionar novos documentos'
-            }
+            {searchTerm || filterType !== 'all' ? 'Tente ajustar os filtros de busca' : 'Comece adicionando seu primeiro documento'}
           </p>
         </div>
       )}
     </div>
   );
 };
+
+export default DocumentManager;
