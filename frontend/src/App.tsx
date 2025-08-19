@@ -811,12 +811,17 @@ const AppContent: React.FC = () => {
     <>
       <SkipLinks />
       <div className="min-h-screen bg-gray-100 flex">
-        {/* Sidebar */}
-        <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} lg:block fixed lg:relative z-30 w-64 h-full`}>
+        {/* Sidebar com navegação acessível */}
+        <aside
+          id="navigation"
+          role="navigation"
+          aria-label="Menu principal de navegação"
+          className={`${isMobileMenuOpen ? 'block' : 'hidden'} lg:block fixed lg:relative z-30 w-64 h-full`}
+        >
           <ErrorBoundary fallback={<div className="p-4 text-red-600">Erro no menu lateral</div>}>
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
           </ErrorBoundary>
-        </div>
+        </aside>
 
         {/* Mobile overlay */}
         {isMobileMenuOpen && (
