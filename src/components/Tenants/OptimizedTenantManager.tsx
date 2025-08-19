@@ -108,6 +108,10 @@ const TenantCard = React.memo(({
     }
   };
 
+  // Verificar se deve mostrar botões de ação
+  const showButtons = shouldShowActionButtons(tenant);
+  const warnings = getValidationWarnings(tenant);
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
       <div className="p-6">
@@ -124,6 +128,23 @@ const TenantCard = React.memo(({
             </div>
           </div>
         </div>
+
+        {/* Avisos de validação */}
+        {warnings.length > 0 && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start">
+              <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-yellow-800">Avisos de validação:</p>
+                <ul className="mt-1 text-sm text-yellow-700">
+                  {warnings.map((warning, index) => (
+                    <li key={index} className="ml-2">• {warning}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-gray-600">
@@ -163,18 +184,28 @@ const TenantCard = React.memo(({
         </div>
 
         <div className="flex justify-end space-x-2">
-          <button
-            onClick={() => onEdit(tenant)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(tenant.id)}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {showButtons ? (
+            <>
+              <button
+                onClick={() => onEdit(tenant)}
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Editar inquilino"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onDelete(tenant.id)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Excluir inquilino"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <div className="text-xs text-gray-500 italic">
+              Ações indisponíveis: {warnings.join(', ')}
+            </div>
+          )}
         </div>
       </div>
     </div>
