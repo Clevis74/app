@@ -273,9 +273,12 @@ const ValidationTestPage = () => {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Teste de Validação dos Inquilinos</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Teste de Validação dos Inquilinos - VERSÃO EXPANDIDA</h1>
           <p className="text-gray-600 mt-2">
             Validação aplicada: CPF válido + Status ativo + Propriedade vinculada
+          </p>
+          <p className="text-gray-500 mt-1 text-sm">
+            ⚠️ Incluídos casos de teste para validar que inquilinos com dados corretos MOSTRAM os botões de ação
           </p>
         </div>
         
