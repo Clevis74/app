@@ -68,7 +68,7 @@ const getValidationWarnings = (tenant: any): string[] => {
 const mockTenants = [
   {
     id: 'tenant-1',
-    name: 'João Silva (Válido)',
+    name: 'João Silva (CPF Inválido)',
     email: 'joao@email.com',
     cpf: '123.456.789-01',
     phone: '(11) 99999-9999',
@@ -79,9 +79,9 @@ const mockTenants = [
   },
   {
     id: 'tenant-2',
-    name: 'Maria Santos (Sem Propriedade)',
+    name: 'Maria Santos (DEVERIA Mostrar Botão se Tivesse Propriedade)',
     email: 'maria@email.com',
-    cpf: '987.654.321-00',
+    cpf: '987.654.321-00', // CPF VÁLIDO!
     phone: '(11) 88888-8888',
     propertyId: '',
     status: 'active',
@@ -131,6 +131,39 @@ const mockTenants = [
     status: 'active',
     monthlyRent: 1600,
     deposit: 3200
+  },
+  {
+    id: 'tenant-7',
+    name: 'Roberto Silva (COMPLETAMENTE VÁLIDO - DEVE MOSTRAR BOTÕES!)',
+    email: 'roberto@email.com',
+    cpf: '111.444.777-35', // CPF VÁLIDO
+    phone: '(11) 33333-3333',
+    propertyId: 'prop-1',
+    status: 'active',
+    monthlyRent: 1800,
+    deposit: 3600
+  },
+  {
+    id: 'tenant-8',
+    name: 'Fernanda Costa (CPF Válido + Propriedade - DEVE MOSTRAR BOTÕES!)',
+    email: 'fernanda@email.com',
+    cpf: '390.533.447-05', // CPF VÁLIDO
+    phone: '(11) 22222-2222',
+    propertyId: 'prop-2',
+    status: 'active',
+    monthlyRent: 1700,
+    deposit: 3400
+  },
+  {
+    id: 'tenant-9',
+    name: 'Maria Santos Corrigida (Com Propriedade - DEVE MOSTRAR BOTÕES!)',
+    email: 'maria.corrigida@email.com',
+    cpf: '987.654.321-00', // CPF VÁLIDO
+    phone: '(11) 11111-1111',
+    propertyId: 'prop-3',
+    status: 'active',
+    monthlyRent: 1200,
+    deposit: 2400
   }
 ];
 
