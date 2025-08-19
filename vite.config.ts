@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    allowedHosts: ['validation-logic.preview.emergentagent.com']
+    allowedHosts: [
+      'validation-logic.preview.emergentagent.com',
+      'mock-data-review.preview.emergentagent.com'
+    ]
   }
 });
