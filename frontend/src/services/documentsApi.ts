@@ -1,168 +1,135 @@
-/**
- * Documents API Service - SISMOBI v3.2.0
- * Service layer for Documents API integration
- */
+import axios from 'axios';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// URL base da API dos documentos
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '/api';
 
+// Criar instância do axios com configuração base
+const documentsApi = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interface para Document
 export interface Document {
   id: string;
-  property_id?: string;
+  property_id: string;
   tenant_id?: string;
+  type: 'contract' | 'invoice' | 'receipt' | 'identification' | 'other';
   name: string;
-  type: 'contract' | 'invoice' | 'receipt' | 'report' | 'other';
   file_path: string;
-  file_size: number;
+  uploaded_at: string;
+  size: number;
   mime_type: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
 }
 
-export interface DocumentCreate {
-  property_id?: string;
+// Interface para criação de documento
+export interface CreateDocumentRequest {
+  property_id: string;
   tenant_id?: string;
+  type: 'contract' | 'invoice' | 'receipt' | 'identification' | 'other';
   name: string;
-  type: 'contract' | 'invoice' | 'receipt' | 'report' | 'other';
-  file_path: string;
-  file_size: number;
-  mime_type: string;
-  description?: string;
+  file: File;
 }
 
-export interface DocumentUpdate {
+// Interface para atualização de documento
+export interface UpdateDocumentRequest {
+  property_id?: string;
+  tenant_id?: string;
+  type?: 'contract' | 'invoice' | 'receipt' | 'identification' | 'other';
   name?: string;
-  type?: 'contract' | 'invoice' | 'receipt' | 'report' | 'other';
-  description?: string;
 }
 
-class DocumentsApiService {
-  private getHeaders(): Headers {
-    const token = localStorage.getItem('access_token');
-    return new Headers({
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    });
+// Interceptors para adicionar token de autenticação
+documentsApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  async getDocuments(params?: {
-    page?: number;
-    page_size?: number;
+// Interceptor para tratar erros de autenticação
+documentsApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Serviços da API de Documentos
+export const documentsApiService = {
+  // Listar documentos
+  async getDocuments(filters?: {
     property_id?: string;
     tenant_id?: string;
-    doc_type?: string;
-  }): Promise<{ items: Document[]; total: number; has_more: boolean }> {
-    const queryParams = new URLSearchParams();
+    type?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<Document[]> {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.skip) params.append('skip', filters.skip.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
     
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
-    if (params?.property_id) queryParams.append('property_id', params.property_id);
-    if (params?.tenant_id) queryParams.append('tenant_id', params.tenant_id);
-    if (params?.doc_type) queryParams.append('doc_type', params.doc_type);
+    const response = await documentsApi.get(`/v1/documents?${params.toString()}`);
+    return response.data;
+  },
 
-    const response = await fetch(
-      `${API_URL}/api/v1/documents?${queryParams.toString()}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      }
-    );
+  // Obter documento por ID
+  async getDocumentById(id: string): Promise<Document> {
+    const response = await documentsApi.get(`/v1/documents/${id}`);
+    return response.data;
+  },
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async getDocument(id: string): Promise<Document> {
-    const response = await fetch(`${API_URL}/api/v1/documents/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async createDocument(document: DocumentCreate): Promise<Document> {
-    const response = await fetch(`${API_URL}/api/v1/documents`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(document),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async updateDocument(id: string, updates: DocumentUpdate): Promise<Document> {
-    const response = await fetch(`${API_URL}/api/v1/documents/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(updates),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async deleteDocument(id: string): Promise<{ message: string; status: string }> {
-    const response = await fetch(`${API_URL}/api/v1/documents/${id}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async uploadDocument(
-    file: File,
-    metadata: {
-      property_id?: string;
-      tenant_id?: string;
-      doc_type?: string;
-      description?: string;
-    }
-  ): Promise<Document> {
+  // Upload de documento
+  async uploadDocument(data: CreateDocumentRequest): Promise<Document> {
     const formData = new FormData();
-    formData.append('file', file);
-    
-    if (metadata.property_id) formData.append('property_id', metadata.property_id);
-    if (metadata.tenant_id) formData.append('tenant_id', metadata.tenant_id);
-    if (metadata.doc_type) formData.append('doc_type', metadata.doc_type);
-    if (metadata.description) formData.append('description', metadata.description);
+    formData.append('file', data.file);
+    formData.append('property_id', data.property_id);
+    if (data.tenant_id) formData.append('tenant_id', data.tenant_id);
+    formData.append('type', data.type);
+    formData.append('name', data.name);
 
-    const token = localStorage.getItem('access_token');
-    const headers = new Headers({
-      'Authorization': token ? `Bearer ${token}` : '',
+    const response = await documentsApi.post('/v1/documents', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
+    return response.data;
+  },
 
-    const response = await fetch(`${API_URL}/api/v1/documents/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
+  // Atualizar documento
+  async updateDocument(id: string, data: UpdateDocumentRequest): Promise<Document> {
+    const response = await documentsApi.put(`/v1/documents/${id}`, data);
+    return response.data;
+  },
+
+  // Excluir documento
+  async deleteDocument(id: string): Promise<void> {
+    await documentsApi.delete(`/v1/documents/${id}`);
+  },
+
+  // Download de documento
+  async downloadDocument(id: string): Promise<Blob> {
+    const response = await documentsApi.get(`/v1/documents/${id}/download`, {
+      responseType: 'blob',
     });
+    return response.data;
+  },
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-}
-
-export const documentsApi = new DocumentsApiService();
+  // Obter URL de preview do documento
+  getDocumentPreviewUrl(id: string): string {
+    const token = localStorage.getItem('authToken');
+    const baseUrl = API_URL.startsWith('/') ? window.location.origin + API_URL : API_URL;
+    return `${baseUrl}/v1/documents/${id}/preview?token=${token}`;
+  },
+};

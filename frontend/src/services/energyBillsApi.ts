@@ -1,169 +1,210 @@
-/**
- * Energy Bills API Service - SISMOBI v3.2.0
- * Service layer for Energy Bills API integration
- */
+import axios from 'axios';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// URL base da API das contas de energia
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '/api';
 
+// Criar instância do axios com configuração base
+const energyBillsApi = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interface para EnergyBill
 export interface EnergyBill {
   id: string;
   property_id: string;
-  group_id: string;
-  month: number;
-  year: number;
-  total_amount: number;
-  total_kwh: number;
-  reading_date: string;
+  tenant_id?: string;
+  billing_period: string; // YYYY-MM
   due_date: string;
-  tenant_allocations: Record<string, number>;
+  amount: number;
+  consumption_kwh: number;
+  previous_reading: number;
+  current_reading: number;
+  tariff_rate: number;
+  status: 'pending' | 'paid' | 'overdue';
+  paid_date?: string;
+  paid_amount?: number;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface EnergyBillCreate {
+// Interface para criação de conta de energia
+export interface CreateEnergyBillRequest {
   property_id: string;
-  group_id: string;
-  month: number;
-  year: number;
-  total_amount: number;
-  total_kwh: number;
-  reading_date: string;
+  tenant_id?: string;
+  billing_period: string;
   due_date: string;
-  tenant_allocations?: Record<string, number>;
+  amount: number;
+  consumption_kwh: number;
+  previous_reading: number;
+  current_reading: number;
+  tariff_rate: number;
+  notes?: string;
 }
 
-export interface EnergyBillUpdate {
-  total_amount?: number;
-  total_kwh?: number;
-  reading_date?: string;
+// Interface para atualização de conta de energia
+export interface UpdateEnergyBillRequest {
+  property_id?: string;
+  tenant_id?: string;
+  billing_period?: string;
   due_date?: string;
-  tenant_allocations?: Record<string, number>;
+  amount?: number;
+  consumption_kwh?: number;
+  previous_reading?: number;
+  current_reading?: number;
+  tariff_rate?: number;
+  status?: 'pending' | 'paid' | 'overdue';
+  paid_date?: string;
+  paid_amount?: number;
+  notes?: string;
 }
 
-class EnergyBillsApiService {
-  private getHeaders(): Headers {
-    const token = localStorage.getItem('access_token');
-    return new Headers({
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    });
+// Interceptors para adicionar token de autenticação
+energyBillsApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  async getEnergyBills(params?: {
-    page?: number;
-    page_size?: number;
+// Interceptor para tratar erros de autenticação
+energyBillsApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Serviços da API de Contas de Energia
+export const energyBillsApiService = {
+  // Listar contas de energia
+  async getEnergyBills(filters?: {
     property_id?: string;
-    group_id?: string;
-    year?: number;
-    month?: number;
-  }): Promise<{ items: EnergyBill[]; total: number; has_more: boolean }> {
-    const queryParams = new URLSearchParams();
+    tenant_id?: string;
+    billing_period?: string;
+    status?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<EnergyBill[]> {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
+    if (filters?.billing_period) params.append('billing_period', filters.billing_period);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.skip) params.append('skip', filters.skip.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
     
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
-    if (params?.property_id) queryParams.append('property_id', params.property_id);
-    if (params?.group_id) queryParams.append('group_id', params.group_id);
-    if (params?.year) queryParams.append('year', params.year.toString());
-    if (params?.month) queryParams.append('month', params.month.toString());
+    const response = await energyBillsApi.get(`/v1/energy-bills?${params.toString()}`);
+    return response.data;
+  },
 
-    const response = await fetch(
-      `${API_URL}/api/v1/energy-bills?${queryParams.toString()}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      }
-    );
+  // Obter conta de energia por ID
+  async getEnergyBillById(id: string): Promise<EnergyBill> {
+    const response = await energyBillsApi.get(`/v1/energy-bills/${id}`);
+    return response.data;
+  },
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  // Criar nova conta de energia
+  async createEnergyBill(data: CreateEnergyBillRequest): Promise<EnergyBill> {
+    const response = await energyBillsApi.post('/v1/energy-bills', data);
+    return response.data;
+  },
+
+  // Atualizar conta de energia
+  async updateEnergyBill(id: string, data: UpdateEnergyBillRequest): Promise<EnergyBill> {
+    const response = await energyBillsApi.put(`/v1/energy-bills/${id}`, data);
+    return response.data;
+  },
+
+  // Marcar conta como paga
+  async markAsPaid(id: string, paidAmount?: number): Promise<EnergyBill> {
+    const data: any = {
+      status: 'paid',
+      paid_date: new Date().toISOString(),
+    };
+    
+    if (paidAmount !== undefined) {
+      data.paid_amount = paidAmount;
     }
+    
+    const response = await energyBillsApi.put(`/v1/energy-bills/${id}`, data);
+    return response.data;
+  },
 
-    return response.json();
-  }
+  // Excluir conta de energia
+  async deleteEnergyBill(id: string): Promise<void> {
+    await energyBillsApi.delete(`/v1/energy-bills/${id}`);
+  },
 
-  async getEnergyBill(id: string): Promise<EnergyBill> {
-    const response = await fetch(`${API_URL}/api/v1/energy-bills/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async createEnergyBill(bill: EnergyBillCreate): Promise<EnergyBill> {
-    const response = await fetch(`${API_URL}/api/v1/energy-bills`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(bill),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async updateEnergyBill(id: string, updates: EnergyBillUpdate): Promise<EnergyBill> {
-    const response = await fetch(`${API_URL}/api/v1/energy-bills/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(updates),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async deleteEnergyBill(id: string): Promise<{ message: string; status: string }> {
-    const response = await fetch(`${API_URL}/api/v1/energy-bills/${id}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async getGroupSummary(
-    groupId: string,
-    year?: number
-  ): Promise<{
-    group_id: string;
-    total_bills: number;
+  // Obter estatísticas de consumo de energia
+  async getConsumptionStats(filters?: {
+    property_id?: string;
+    tenant_id?: string;
+    start_period?: string;
+    end_period?: string;
+  }): Promise<{
+    total_consumption: number;
+    average_monthly: number;
     total_amount: number;
-    total_kwh: number;
-    average_amount: number;
-    average_kwh: number;
-    bills: EnergyBill[];
+    bills_count: number;
+    period_range: string;
+    average_tariff: number;
   }> {
-    const queryParams = new URLSearchParams();
-    if (year) queryParams.append('year', year.toString());
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
+    if (filters?.start_period) params.append('start_period', filters.start_period);
+    if (filters?.end_period) params.append('end_period', filters.end_period);
+    
+    const response = await energyBillsApi.get(`/v1/energy-bills/stats?${params.toString()}`);
+    return response.data;
+  },
 
-    const response = await fetch(
-      `${API_URL}/api/v1/energy-bills/group/${groupId}/summary?${queryParams.toString()}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      }
-    );
+  // Gerar relatório de contas de energia
+  async generateReport(filters?: {
+    property_id?: string;
+    tenant_id?: string;
+    start_period?: string;
+    end_period?: string;
+    format?: 'pdf' | 'xlsx';
+  }): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
+    if (filters?.start_period) params.append('start_period', filters.start_period);
+    if (filters?.end_period) params.append('end_period', filters.end_period);
+    if (filters?.format) params.append('format', filters.format);
+    
+    const response = await energyBillsApi.get(`/v1/energy-bills/report?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-}
-
-export const energyBillsApi = new EnergyBillsApiService();
+  // Calcular projeção de consumo
+  async calculateProjection(
+    propertyId: string,
+    months: number = 12
+  ): Promise<{
+    projected_consumption: number;
+    projected_cost: number;
+    monthly_average: number;
+    trend_analysis: 'increasing' | 'decreasing' | 'stable';
+    confidence_level: number;
+  }> {
+    const response = await energyBillsApi.post('/v1/energy-bills/projection', {
+      property_id: propertyId,
+      projection_months: months,
+    });
+    return response.data;
+  },
+};

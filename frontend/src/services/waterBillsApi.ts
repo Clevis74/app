@@ -1,169 +1,188 @@
-/**
- * Water Bills API Service - SISMOBI v3.2.0
- * Service layer for Water Bills API integration
- */
+import axios from 'axios';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// URL base da API das contas de água
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '/api';
 
+// Criar instância do axios com configuração base
+const waterBillsApi = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interface para WaterBill
 export interface WaterBill {
   id: string;
   property_id: string;
-  group_id: string;
-  month: number;
-  year: number;
-  total_amount: number;
-  total_liters: number;
-  reading_date: string;
+  tenant_id?: string;
+  billing_period: string; // YYYY-MM
   due_date: string;
-  tenant_allocations: Record<string, number>;
+  amount: number;
+  consumption_m3: number;
+  previous_reading: number;
+  current_reading: number;
+  status: 'pending' | 'paid' | 'overdue';
+  paid_date?: string;
+  paid_amount?: number;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface WaterBillCreate {
+// Interface para criação de conta de água
+export interface CreateWaterBillRequest {
   property_id: string;
-  group_id: string;
-  month: number;
-  year: number;
-  total_amount: number;
-  total_liters: number;
-  reading_date: string;
+  tenant_id?: string;
+  billing_period: string;
   due_date: string;
-  tenant_allocations?: Record<string, number>;
+  amount: number;
+  consumption_m3: number;
+  previous_reading: number;
+  current_reading: number;
+  notes?: string;
 }
 
-export interface WaterBillUpdate {
-  total_amount?: number;
-  total_liters?: number;
-  reading_date?: string;
+// Interface para atualização de conta de água
+export interface UpdateWaterBillRequest {
+  property_id?: string;
+  tenant_id?: string;
+  billing_period?: string;
   due_date?: string;
-  tenant_allocations?: Record<string, number>;
+  amount?: number;
+  consumption_m3?: number;
+  previous_reading?: number;
+  current_reading?: number;
+  status?: 'pending' | 'paid' | 'overdue';
+  paid_date?: string;
+  paid_amount?: number;
+  notes?: string;
 }
 
-class WaterBillsApiService {
-  private getHeaders(): Headers {
-    const token = localStorage.getItem('access_token');
-    return new Headers({
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
-    });
+// Interceptors para adicionar token de autenticação
+waterBillsApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  async getWaterBills(params?: {
-    page?: number;
-    page_size?: number;
+// Interceptor para tratar erros de autenticação
+waterBillsApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Serviços da API de Contas de Água
+export const waterBillsApiService = {
+  // Listar contas de água
+  async getWaterBills(filters?: {
     property_id?: string;
-    group_id?: string;
-    year?: number;
-    month?: number;
-  }): Promise<{ items: WaterBill[]; total: number; has_more: boolean }> {
-    const queryParams = new URLSearchParams();
+    tenant_id?: string;
+    billing_period?: string;
+    status?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<WaterBill[]> {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
+    if (filters?.billing_period) params.append('billing_period', filters.billing_period);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.skip) params.append('skip', filters.skip.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
     
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
-    if (params?.property_id) queryParams.append('property_id', params.property_id);
-    if (params?.group_id) queryParams.append('group_id', params.group_id);
-    if (params?.year) queryParams.append('year', params.year.toString());
-    if (params?.month) queryParams.append('month', params.month.toString());
+    const response = await waterBillsApi.get(`/v1/water-bills?${params.toString()}`);
+    return response.data;
+  },
 
-    const response = await fetch(
-      `${API_URL}/api/v1/water-bills?${queryParams.toString()}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      }
-    );
+  // Obter conta de água por ID
+  async getWaterBillById(id: string): Promise<WaterBill> {
+    const response = await waterBillsApi.get(`/v1/water-bills/${id}`);
+    return response.data;
+  },
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  // Criar nova conta de água
+  async createWaterBill(data: CreateWaterBillRequest): Promise<WaterBill> {
+    const response = await waterBillsApi.post('/v1/water-bills', data);
+    return response.data;
+  },
+
+  // Atualizar conta de água
+  async updateWaterBill(id: string, data: UpdateWaterBillRequest): Promise<WaterBill> {
+    const response = await waterBillsApi.put(`/v1/water-bills/${id}`, data);
+    return response.data;
+  },
+
+  // Marcar conta como paga
+  async markAsPaid(id: string, paidAmount?: number): Promise<WaterBill> {
+    const data: any = {
+      status: 'paid',
+      paid_date: new Date().toISOString(),
+    };
+    
+    if (paidAmount !== undefined) {
+      data.paid_amount = paidAmount;
     }
+    
+    const response = await waterBillsApi.put(`/v1/water-bills/${id}`, data);
+    return response.data;
+  },
 
-    return response.json();
-  }
+  // Excluir conta de água
+  async deleteWaterBill(id: string): Promise<void> {
+    await waterBillsApi.delete(`/v1/water-bills/${id}`);
+  },
 
-  async getWaterBill(id: string): Promise<WaterBill> {
-    const response = await fetch(`${API_URL}/api/v1/water-bills/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async createWaterBill(bill: WaterBillCreate): Promise<WaterBill> {
-    const response = await fetch(`${API_URL}/api/v1/water-bills`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(bill),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async updateWaterBill(id: string, updates: WaterBillUpdate): Promise<WaterBill> {
-    const response = await fetch(`${API_URL}/api/v1/water-bills/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(updates),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async deleteWaterBill(id: string): Promise<{ message: string; status: string }> {
-    const response = await fetch(`${API_URL}/api/v1/water-bills/${id}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-
-  async getGroupSummary(
-    groupId: string,
-    year?: number
-  ): Promise<{
-    group_id: string;
-    total_bills: number;
+  // Obter estatísticas de consumo de água
+  async getConsumptionStats(filters?: {
+    property_id?: string;
+    tenant_id?: string;
+    start_period?: string;
+    end_period?: string;
+  }): Promise<{
+    total_consumption: number;
+    average_monthly: number;
     total_amount: number;
-    total_liters: number;
-    average_amount: number;
-    average_liters: number;
-    bills: WaterBill[];
+    bills_count: number;
+    period_range: string;
   }> {
-    const queryParams = new URLSearchParams();
-    if (year) queryParams.append('year', year.toString());
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
+    if (filters?.start_period) params.append('start_period', filters.start_period);
+    if (filters?.end_period) params.append('end_period', filters.end_period);
+    
+    const response = await waterBillsApi.get(`/v1/water-bills/stats?${params.toString()}`);
+    return response.data;
+  },
 
-    const response = await fetch(
-      `${API_URL}/api/v1/water-bills/group/${groupId}/summary?${queryParams.toString()}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  }
-}
-
-export const waterBillsApi = new WaterBillsApiService();
+  // Gerar relatório de contas de água
+  async generateReport(filters?: {
+    property_id?: string;
+    tenant_id?: string;
+    start_period?: string;
+    end_period?: string;
+    format?: 'pdf' | 'xlsx';
+  }): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
+    if (filters?.start_period) params.append('start_period', filters.start_period);
+    if (filters?.end_period) params.append('end_period', filters.end_period);
+    if (filters?.format) params.append('format', filters.format);
+    
+    const response = await waterBillsApi.get(`/v1/water-bills/report?${params.toString()}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+};
