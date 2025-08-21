@@ -244,3 +244,6 @@ export const authAPI = {
 
 // Export authAPI as authService for backward compatibility
 export const authService = authAPI;
+
+// Export other services for backward compatibility
+export const alertService = alertsAPI;
