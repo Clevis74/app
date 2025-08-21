@@ -241,3 +241,6 @@ export const authAPI = {
     return apiRequest('/v1/auth/me');
   },
 };
+
+// Export authAPI as authService for backward compatibility
+export const authService = authAPI;
