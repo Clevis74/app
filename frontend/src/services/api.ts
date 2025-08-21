@@ -247,3 +247,6 @@ export const authService = authAPI;
 
 // Export other services for backward compatibility
 export const alertService = alertsAPI;
+export const propertyService = propertiesAPI;
+export const tenantService = tenantsAPI;
+export const transactionService = transactionsAPI;
