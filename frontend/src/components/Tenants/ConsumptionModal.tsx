@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, IdCard, Home, Zap, Droplets, Calculator, DollarSign, Mail, FileText, RefreshCw, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { X, User, CreditCard, Home, Zap, Droplets, Calculator, DollarSign, Mail, FileText, RefreshCw, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { Tenant, Property, EnergyBill, WaterBill } from '../../types';
 import { formatCurrency } from '../../utils/optimizedCalculations';
 
